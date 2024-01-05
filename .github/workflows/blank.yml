@@ -9,8 +9,8 @@ on:
     - cron:  "0 8 * * *"  # Runs At 12:00
 env:
 
-  GITHUB_USER_NAME: Vincentqyw # your github id
-  GITHUB_USER_EMAIL: realcat@126.com # your email address
+  GITHUB_USER_NAME: Jasmine66Bloom # your github id
+  GITHUB_USER_EMAIL: zhouyj2366@hotmail.com # your email address
   
   
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
@@ -37,17 +37,18 @@ jobs:
           pip install arxiv
           pip install requests
           pip install pyyaml
+          pip install datetime
 
       - name: Run daily arxiv 
         run: |
-          python daily_arxiv.py
+          python scripts/main.py
           
       - name: Push new cv-arxiv-daily.md
         uses: github-actions-x/commit@v2.9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Github Action Automatic Update CV Arxiv Papers"
-          files: README.md cv-arxiv-daily.json
+          files: scripts/tmp/README.md scripts/tmp/cv-arxiv-daily.json
           rebase: 'true'
           name: ${{ env.GITHUB_USER_NAME }}
           email: ${{ env.GITHUB_USER_EMAIL }}
