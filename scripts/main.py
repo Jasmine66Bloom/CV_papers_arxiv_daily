@@ -39,12 +39,14 @@ def sort_papers(papers):
 appeared_ids = []
 
 
-def get_daily_papers(topic, query="nlp", max_results=2):
-    """
-    @param topic: str
-    @param query: str
-    @return paper_with_code: dict
-    """
+def found_keyword(title, abstract, keys):
+    for key in keys:
+        if key.lower() in title.lower() or key.lower() in abstract.lower():
+            return True
+    return False
+    
+
+def get_daily_papers(search_engine, algo_txt, algo_name=''):
 
     # output
     content = dict()
@@ -52,12 +54,6 @@ def get_daily_papers(topic, query="nlp", max_results=2):
 
     # content
     output = dict()
-
-    search_engine = arxiv.Search(
-        query=query,
-        max_results=max_results,
-        sort_by=arxiv.SortCriterion.SubmittedDate
-    )
 
     cnt = 0
     for result in search_engine.results():
@@ -74,16 +70,17 @@ def get_daily_papers(topic, query="nlp", max_results=2):
         publish_time = result.published.date()
         update_time = result.updated.date()
 
+        if str(publish_time) != cur_date:
+            continue
+
+        if algo_name != '其他':
+            if not found_keyword(paper_title, paper_abstract, algo_txt):
+                continue
+
         if paper_id in appeared_ids:
             continue
         else:
             appeared_ids.append(paper_id)
-
-        if primary_category != 'cs.CV':
-            continue
-        if str(publish_time) != cur_date:
-            continue
-
         # print('/n**************')
         # print('paper_id: ', paper_id)
         # print('paper_title: ', paper_title)
@@ -120,8 +117,9 @@ def get_daily_papers(topic, query="nlp", max_results=2):
         except Exception as e:
             print(f"exception: {e} with id: {paper_key}")
 
-    data = {topic: content}
-    data_web = {topic: content_to_web}
+    print('found num: ', len(content))
+    data = {algo_name: content}
+    data_web = {algo_name: content_to_web}
     return data, data_web
 
 
@@ -150,10 +148,6 @@ def update_json_file(filename, data_all):
 
 
 def json_to_md(filename, to_web=False):
-    """
-    @param filename: str
-    @return None
-    """
 
     DateNow = datetime.date.today()
     DateNow = str(DateNow)
@@ -183,7 +177,7 @@ def json_to_md(filename, to_web=False):
         if to_web == True:
             f.write("---\n" + "layout: default\n" + "---\n\n")
 
-        f.write("## !UPDATED  -- " + DateNow + "\n\n")
+        f.write("## !UPDATED  -- " + cur_date + "\n\n")
 
         for keyword in data.keys():
             day_content = data[keyword]
@@ -218,39 +212,72 @@ if __name__ == "__main__":
 
     keywords = dict()
     # keywords["CV"] = "cat:cs.CV"
-    # keywords["CVCV"] = "cat:cs.CV" + "AND" + "\"Computer Vision\""
-    # keywords["CVDM"] = "cat:cs.CV" + "AND" + "\"Diffusion Model\""
-    # keywords["NLP"] = "NLP" + "OR" + "\"Natural Language Processing\""
+    # keywords["CVCV"] = "cat:cs.CV" + "AND" + , Computer Vision\, 
+    # keywords["CVDM"] = "cat:cs.CV" + "AND" + , Diffusion Model\, 
+    # keywords["NLP"] = "NLP" + "OR" + , Natural Language Processing\, 
 
-    pre_txt = 'cat:cs.CV'
-    keywords["Transformer"] = "\"transformer\"OR\"attention\""
-    keywords["模型压缩/优化"] = "\"NAS\"OR\"Network Architecture Search\"OR\"Pruning\"OR\"Quantization\"OR\"Knowledge Distillation\"OR\"Distillation\"OR\"model optimizer\""
-    keywords["生成模型"] = "\"diffusion model\"OR\"GAN\"OR\"vae\"OR\"Generative Adversarial Networ\""
-    keywords["多模态"] = "\"multi-modal\"OR\"Multimodal\"OR\"vae\"OR\"Generative Adversarial Networ\""
-    keywords["分类/检测/识别/分割"] = "\"object detection\"OR\"object recognition\"OR\"recognition\"OR\"image classification\"OR\"video classification\"OR\"segment\"OR\"segmentation\"OR\"superresolution\"OR\super resolution\""
-    keywords["OCR"] = "ocr" + "OR" + "\"optical character recognition\""
-    keywords["Zero/Few-Shot Learning"] = "\"zero-shot\"OR\"few-shot\"\"zero shot\"OR\"few shot\""
-    keywords["半监督/无监督学习"] = "\"Semi-supervised\"OR\"unsupervised\""
-    keywords["3D相关"] = "3D" + "OR" + \
-        "3D detection\"OR\"3D reconstruction\"OR\"3D understanding\"\rendering\""
-    keywords["图像理解"] = "\"Intrinsic Image Decomposition\"OR\"Intrinsic Image\"OR\"relighting\"OR\"recolor\"OR\"\image composition\""
-    keywords["Nerf"] = "Nerf" + "OR" + \
-        "Neural Radiance Fields\"OR\"3d gaussian splatting\""
-    keywords["GNN"] = "GNN" + "OR" + "\"Graph Neural Network\""
-    keywords["其他"] = "cat:cs.CV"
-
+    # pre_txt = 'cat:cs.CV'
+    # keywords["分类"] = , image classification, video classification\, 
+    # keywords["检测/识别"] = , object detection, object recognition, recognition\, 
+    # keywords["分割"] = , segment, segmentation\, 
+    # keywords["超分辨"] = , superresolution\"OR\super resolution\, 
+    # # keywords["分类/检测/识别/分割"] = , object detection, object recognition, recognition,  \
+    # # #     image classification, video classification, segment,  \
+    # # #         segmentation, superresolution\"OR\super resolution\, 
+    # keywords["OCR"] = "ocr" + "OR" + , optical character recognition\, 
+    # keywords["Transformer"] = , transformer, attention\, 
+    # keywords["模型压缩/优化"] = , NAS, Network Architecture Search, Pruning, Quantization, Knowledge Distillation, Distillation, model optimizer\, 
+    # keywords["生成模型"] = , diffusion model, GAN, vae, Generative Adversarial Networ\, 
+    # keywords["多模态"] = , multi-modal, Multimodal, vae, Generative Adversarial Networ\, 
+    # keywords["Zero/Few-Shot Learning"] = , zero-shot, few-shot\, zero shot, few shot\, 
+    # keywords["半监督/无监督学习"] = , Semi-supervised, unsupervised\, 
+    # keywords["3D相关"] = "3D" + "OR" + \
+    #     "3D detection, 3D reconstruction, 3D understanding\"\rendering\, 
+    # keywords["图像理解"] = , Intrinsic Image Decomposition, Intrinsic Image,  \
+    #     relighting, recolor, \image composition\, 
+    # keywords["Nerf"] = "Nerf" + "OR" + \
+    #     "Neural Radiance Fields, 3d gaussian splatting\, 
+    # keywords["GNN"] = "GNN" + "OR" + , Graph Neural Network\, 
+    # keywords["其他"] = "cat:cs.CV"
     #
+    
+    # import time
+    
+    query = "cat:cs.CV"
+    search_engine = arxiv.Search(
+        query=query,
+        max_results=500,
+        sort_by=arxiv.SortCriterion.SubmittedDate,
+        sort_order = arxiv.SortOrder.Descending
+    )
 
-    for topic, keyword in keywords.items():
-        print("Keyword: " + topic)
-        if topic == '其他':
-            max_results = 3000
-        data, data_web = get_daily_papers(
-            topic, query=keyword, max_results=500)
+    keywords["分类/检测/识别/分割"] = ['image classification', 'video classification', \
+                               'object detection', 'object recognition', 'recognition', \
+                                'segment', 'segmentation', 'superresolution', 'super resolution']
+    keywords["OCR"] = ['optical character recognition', 'ocr'] 
+    keywords["Transformer"] = ['transformer', 'attention'] 
+    keywords["模型压缩/优化"] = ['NAS', 'Network Architecture Search', 'Pruning', 'Quantization', \
+                           'Knowledge Distillation', 'Distillation, model optimizer']
+    keywords["生成模型"] = ['diffusion model', 'GAN', 'vae', 'Generative Adversarial Networ']
+    keywords["多模态"] = ['multi-modal', 'Multimodal']
+    keywords["Zero/Few-Shot Learning"] = ['zero-shot', 'few-shot', 'zero shot', 'few shot']
+    keywords["半监督/无监督学习"] = ['Semi-supervised', 'unsupervised']
+    keywords["3D相关"] = ["3D", '3D detection', '3D reconstruction', '3D understanding', 'rendering']
+    keywords["图像理解"] = ['Intrinsic Image Decomposition', 'Intrinsic Image',  \
+        'relighting', 'recolor', 'image composition'] 
+    keywords["Nerf"] = ["Nerf", 'Neural Radiance Fields', '3d gaussian splatting']
+    keywords["GNN"] = ["GNN", 'Graph Neural Network']
+    keywords["其他"] = ""
+
+    for algo_name, algo_txt in keywords.items():
+        print("Keyword: ", algo_name)
+
+        data, data_web = get_daily_papers(search_engine, algo_txt, algo_name=algo_name)
         data_collector.append(data)
         data_collector_web.append(data_web)
 
         print("\n")
+        # time.sleep(10)
 
     # update README.md file
     json_file = os.path.join(base_path, "tmp/cv-arxiv-daily.json")
