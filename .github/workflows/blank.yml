@@ -1,0 +1,54 @@
+# name of workflow
+name: Run Arxiv Papers Daily
+
+# Controls when the workflow will run
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+  schedule:
+    - cron:  "0 8 * * *"  # Runs At 12:00
+env:
+
+  GITHUB_USER_NAME: Jasmine66Bloom # your github id
+  GITHUB_USER_EMAIL: zhouyj2366@hotmail.com # your email address
+  
+  
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    name: update
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        
+      - name: Set up Python Env
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'       
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install arxiv
+          pip install requests
+          pip install pyyaml
+          pip install datetime
+
+      - name: Run daily arxiv 
+        run: |
+          python scripts/main.py
+          
+      - name: Push new cv-arxiv-daily.md
+        uses: github-actions-x/commit@v2.9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Github Action Automatic Update CV Arxiv Papers"
+          files: scripts/tmp/README.md scripts/tmp/cv-arxiv-daily.json
+          rebase: 'true'
+          name: ${{ env.GITHUB_USER_NAME }}
+          email: ${{ env.GITHUB_USER_EMAIL }}
