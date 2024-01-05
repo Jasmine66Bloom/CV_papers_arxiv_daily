@@ -11,7 +11,6 @@ sys.path.append(base_path)
 
 base_url = "https://arxiv.paperswithcode.com/api/v0/papers/"
 
-import datetime
 cur_date = str(datetime.date.today() + datetime.timedelta(days = -1))
 out_dir_name = cur_date.split('-')[0] + '-' + cur_date.split('-')[1]
 out_dir = os.path.join(base_path, '../data/', out_dir_name)
@@ -180,7 +179,7 @@ def json_to_md(filename, to_web=False):
         if to_web == True:
             f.write("---\n" + "layout: default\n" + "---\n\n")
 
-        f.write("## Updated on " + DateNow + "\n\n")
+        f.write("## !UPDATED  -- " + DateNow + "\n\n")
 
         for keyword in data.keys():
             day_content = data[keyword]
@@ -238,8 +237,8 @@ if __name__ == "__main__":
 
     for topic, keyword in keywords.items():
         print("Keyword: " + topic)
-        if topic == '其他': max_results = 100
-        data, data_web = get_daily_papers(topic, query=keyword, max_results=30)
+        if topic == '其他': max_results = 3000
+        data, data_web = get_daily_papers(topic, query=keyword, max_results=500)
         data_collector.append(data)
         data_collector_web.append(data_web)
 
