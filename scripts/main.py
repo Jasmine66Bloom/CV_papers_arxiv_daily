@@ -1,17 +1,17 @@
+import sys
 import datetime
 import requests
 import json
 import arxiv
 import re
 
-import os 
+import os
 base_path = os.path.dirname(__file__)
-import sys 
 sys.path.append(base_path)
 
 base_url = "https://arxiv.paperswithcode.com/api/v0/papers/"
 
-cur_date = str(datetime.date.today() + datetime.timedelta(days = -1))
+cur_date = str(datetime.date.today() + datetime.timedelta(days=-1))
 out_dir_name = cur_date.split('-')[0] + '-' + cur_date.split('-')[1]
 out_dir = os.path.join(base_path, '../data/', out_dir_name)
 if not os.path.exists(out_dir):
@@ -35,7 +35,10 @@ def sort_papers(papers):
         output[key] = papers[key]
     return output
 
+
 appeared_ids = []
+
+
 def get_daily_papers(topic, query="nlp", max_results=2):
     """
     @param topic: str
@@ -51,7 +54,7 @@ def get_daily_papers(topic, query="nlp", max_results=2):
     output = dict()
 
     search_engine = arxiv.Search(
-        query = query,
+        query=query,
         max_results=max_results,
         sort_by=arxiv.SortCriterion.SubmittedDate
     )
@@ -76,8 +79,10 @@ def get_daily_papers(topic, query="nlp", max_results=2):
         else:
             appeared_ids.append(paper_id)
 
-        if primary_category != 'cs.CV': continue
-        if str(publish_time) != cur_date: continue
+        if primary_category != 'cs.CV':
+            continue
+        if str(publish_time) != cur_date:
+            continue
 
         # print('/n**************')
         # print('paper_id: ', paper_id)
@@ -90,7 +95,6 @@ def get_daily_papers(topic, query="nlp", max_results=2):
         # print('update_time: ', update_time)
         # print('code_url: ', code_url)
 
-        
         ver_pos = paper_id.find('v')
         if ver_pos == -1:
             paper_key = paper_id
@@ -218,27 +222,31 @@ if __name__ == "__main__":
     # keywords["CVDM"] = "cat:cs.CV" + "AND" + "\"Diffusion Model\""
     # keywords["NLP"] = "NLP" + "OR" + "\"Natural Language Processing\""
 
-    keywords["Transformer"] = "cat:cs.CV" + "OR" + "\"transformer\"OR\"attention\""
-    keywords["模型压缩/优化"] = "cat:cs.CV" + "OR" + "\"NAS\"OR\"Network Architecture Search\"OR\"Pruning\"OR\"Quantization\"OR\"Knowledge Distillation\"OR\"Distillation\"OR\"model optimizer\""
-    keywords["生成模型"] = "cat:cs.CV" + "OR" + "\"diffusion model\"OR\"GAN\"OR\"vae\"OR\"Generative Adversarial Networ\""
-    keywords["多模态"] = "cat:cs.CV" + "OR" + "\"multi-modal\"OR\"Multimodal\"OR\"vae\"OR\"Generative Adversarial Networ\""
-    keywords["分类/检测/识别/分割"] = "cat:cs.CV" + "OR" + "\"object detection\"OR\"object recognition\"OR\"recognition\"OR\"image classification\"OR\"video classification\"OR\"segment\"OR\"segmentation\""
-    keywords["OCR"] = "cat:cs.CV" + "OR" + "\"ocr\"OR\"optical character recognition\""
-    keywords["Zero/Few-Shot Learning"] = "cat:cs.CV" + "OR" + "\"zero-shot\"OR\"few-shot\""
-    keywords["半监督/无监督学习"] = "cat:cs.CV" + "OR" + "\"Semi-supervised\"OR\"unsupervised\""
-    keywords["3D相关"] = "cat:cs.CV" + "OR" + "\"3D\"OR\"3D detection\"OR\"3D reconstruction\"OR\"3D understanding\"\rendering\""
-    keywords["图像理解"] = "cat:cs.CV" + "OR" + "\"Intrinsic Image Decomposition\"OR\"Intrinsic Image\"OR\"relighting\"OR\"recolor\"OR\"\image composition\""
-    keywords["Nerf"] = "cat:cs.CV" + "OR" + "\"3D\"OR\"3D detection\"OR\"3D reconstruction\"OR\"3D understanding\"OR\"3d gaussian splatting\""
-    keywords["GNN"] = "cat:cs.CV" + "OR" + "\"GNN\"OR\"Graph Neural Network\""
+    pre_txt = 'cat:cs.CV'
+    keywords["Transformer"] = "\"transformer\"OR\"attention\""
+    keywords["模型压缩/优化"] = "\"NAS\"OR\"Network Architecture Search\"OR\"Pruning\"OR\"Quantization\"OR\"Knowledge Distillation\"OR\"Distillation\"OR\"model optimizer\""
+    keywords["生成模型"] = "\"diffusion model\"OR\"GAN\"OR\"vae\"OR\"Generative Adversarial Networ\""
+    keywords["多模态"] = "\"multi-modal\"OR\"Multimodal\"OR\"vae\"OR\"Generative Adversarial Networ\""
+    keywords["分类/检测/识别/分割"] = "\"object detection\"OR\"object recognition\"OR\"recognition\"OR\"image classification\"OR\"video classification\"OR\"segment\"OR\"segmentation\"OR\"superresolution\"OR\super resolution\""
+    keywords["OCR"] = "ocr" + "OR" + "\"optical character recognition\""
+    keywords["Zero/Few-Shot Learning"] = "\"zero-shot\"OR\"few-shot\"\"zero shot\"OR\"few shot\""
+    keywords["半监督/无监督学习"] = "\"Semi-supervised\"OR\"unsupervised\""
+    keywords["3D相关"] = "3D" + "OR" + \
+        "3D detection\"OR\"3D reconstruction\"OR\"3D understanding\"\rendering\""
+    keywords["图像理解"] = "\"Intrinsic Image Decomposition\"OR\"Intrinsic Image\"OR\"relighting\"OR\"recolor\"OR\"\image composition\""
+    keywords["Nerf"] = "Nerf" + "OR" + \
+        "Neural Radiance Fields\"OR\"3d gaussian splatting\""
+    keywords["GNN"] = "GNN" + "OR" + "\"Graph Neural Network\""
     keywords["其他"] = "cat:cs.CV"
 
     #
 
-
     for topic, keyword in keywords.items():
         print("Keyword: " + topic)
-        if topic == '其他': max_results = 3000
-        data, data_web = get_daily_papers(topic, query=keyword, max_results=500)
+        if topic == '其他':
+            max_results = 3000
+        data, data_web = get_daily_papers(
+            topic, query=keyword, max_results=500)
         data_collector.append(data)
         data_collector_web.append(data_web)
 
@@ -247,7 +255,7 @@ if __name__ == "__main__":
     # update README.md file
     json_file = os.path.join(base_path, "tmp/cv-arxiv-daily.json")
     if ~os.path.exists(json_file):
-        with open(json_file,'w')as a:
+        with open(json_file, 'w')as a:
             print("create " + json_file)
 
     # update json data
