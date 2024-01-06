@@ -10,8 +10,8 @@ base_path = os.path.dirname(__file__)
 sys.path.append(base_path)
 
 base_url = "https://arxiv.paperswithcode.com/api/v0/papers/"
-max_results = 1000
-cur_date = str(datetime.date.today() + datetime.timedelta(days=-4))
+max_results = 1300
+cur_date = str(datetime.date.today() + datetime.timedelta(days=-5))
 out_dir_name = cur_date.split('-')[0] + '-' + cur_date.split('-')[1]
 out_dir = os.path.join(base_path, '../data/', out_dir_name)
 if not os.path.exists(out_dir):
@@ -208,7 +208,12 @@ def json_to_md(filename, to_web=False):
 
             for _, v in day_content.items():
                 if v is not None:
-                    f.write(v)
+                    # example: [2401.02278v1](http://arxiv.org/abs/2401.02278v1)
+                    v_list = v.split('|')
+                    pdf_url = v_list[4].split(']')[-1].replace('(', '<').replace(')', '>')
+                    v_list[4] = pdf_url
+                    new_v = "|".join(vv for vv in v_list)
+                    f.write(new_v)
 
             f.write(f"\n")
 
@@ -261,16 +266,16 @@ def json_to_md(filename, to_web=False):
 
                     f.write('**PDF:** ')
                     # f.write(v_list[4])
-                    # example: [2401.02278v1](http://arxiv.org/abs/2401.02278v1)
-                    cur_txt = v_list[4].split(']')[-1].replace('(', '<').replace(')', '>')
-                    f.write(cur_txt)
+                    cur_t = v_list[4].split(']')[-1].replace('(', '<').replace(')', '>')
+                    f.write(cur_t)
                     f.write('<br />')
                     f.write("\n")
 
                     f.write('**Code:** ')
-                    f.write(v_list[5])
+                    # f.write(v_list[5])
+                    cur_t = v_list[5].split(']')[-1].replace('(', '<').replace(')', '>')
+                    f.write(cur_t)
                     f.write('<br />')
-                    # f.write('<br />')
                     f.write("\n")
 
             f.write(f"\n")
