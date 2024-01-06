@@ -11,7 +11,7 @@ sys.path.append(base_path)
 
 base_url = "https://arxiv.paperswithcode.com/api/v0/papers/"
 max_results = 1300
-cur_date = str(datetime.date.today() + datetime.timedelta(days=-5))
+cur_date = str(datetime.date.today() + datetime.timedelta(days=-1))
 out_dir_name = cur_date.split('-')[0] + '-' + cur_date.split('-')[1]
 out_dir = os.path.join(base_path, '../data/', out_dir_name)
 if not os.path.exists(out_dir):
