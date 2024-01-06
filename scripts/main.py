@@ -10,12 +10,14 @@ base_path = os.path.dirname(__file__)
 sys.path.append(base_path)
 
 base_url = "https://arxiv.paperswithcode.com/api/v0/papers/"
-
-cur_date = str(datetime.date.today() + datetime.timedelta(days=-1))
+max_results = 1000
+cur_date = str(datetime.date.today() + datetime.timedelta(days=-4))
 out_dir_name = cur_date.split('-')[0] + '-' + cur_date.split('-')[1]
 out_dir = os.path.join(base_path, '../data/', out_dir_name)
 if not os.path.exists(out_dir):
     os.makedirs(out_dir)
+
+client = arxiv.Client()
 
 
 def get_authors(authors, first_author=False):
@@ -23,7 +25,13 @@ def get_authors(authors, first_author=False):
     if first_author == False:
         output = ", ".join(str(author) for author in authors)
     else:
-        output = authors[0]
+        # output = authors[0]
+        if len(authors) > 10:
+            authors = authors[0:10]
+            authors.append('et.al.')
+        output = ", ".join(str(author) for author in authors)
+        # if len(output) > 3:
+        #     output = authors[0:3]
     return output
 
 
@@ -44,7 +52,7 @@ def found_keyword(title, abstract, keys):
         if key.lower() in title.lower() or key.lower() in abstract.lower():
             return True
     return False
-    
+
 
 def get_daily_papers(search_engine, algo_txt, algo_name=''):
 
@@ -56,7 +64,7 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
     output = dict()
 
     cnt = 0
-    for result in search_engine.results():
+    for result in client.results(search_engine):
         paper_id = result.get_short_id()
         paper_title = result.title
         paper_url = result.entry_id
@@ -104,15 +112,16 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
             if "official" in r and r["official"]:
                 cnt += 1
                 repo_url = r["official"]["url"]
+                #  -> ''
                 content[
-                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_first_author} et.al.|[{paper_id}]({paper_url})|**[link]({repo_url})**|\n"
+                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_first_author}|[{paper_id}]({paper_url})|**[link]({repo_url})**|\n"
                 content_to_web[
-                    paper_key] = f"- **{update_time}**, **{paper_title}**, {paper_first_author} et.al., [PDF:{paper_id}]({paper_url}), **[code]({repo_url})**\n"
+                    paper_key] = f"- **{update_time}**, **{paper_title}**, {paper_first_author}, [PDF:{paper_id}]({paper_url}), **[code]({repo_url})**\n"
             else:
                 content[
-                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_first_author} et.al.|[{paper_id}]({paper_url})|null|\n"
+                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_first_author}|[{paper_id}]({paper_url})|null|\n"
                 content_to_web[
-                    paper_key] = f"- **{update_time}**, **{paper_title}**, {paper_first_author} et.al., [PDF:{paper_id}]({paper_url})\n"
+                    paper_key] = f"- **{update_time}**, **{paper_title}**, {paper_first_author}, [PDF:{paper_id}]({paper_url})\n"
 
         except Exception as e:
             print(f"exception: {e} with id: {paper_key}")
@@ -164,8 +173,8 @@ def json_to_md(filename, to_web=False):
         # md_filename = "README.md"
         md_filename = out_dir + '/' + cur_date + '.md'
     else:
-        md_filename = out_dir + '/' + cur_date + '.md'
-        # md_filename = "./docs/index.md"
+        # md_filename = out_dir + '/' + cur_date + '.md'
+        md_filename = "README.md"
 
         # clean README.md if daily already exist else create it
     with open(md_filename, "w+") as f:
@@ -203,6 +212,69 @@ def json_to_md(filename, to_web=False):
 
             f.write(f"\n")
 
+    # 写为 markdown 格式，微信公众号等
+    md_filename_dir = os.path.join(base_path, 'local', out_dir_name)
+    if not os.path.exists(md_filename_dir):
+        os.makedirs(md_filename_dir)
+    md_filename_path = os.path.join(md_filename_dir, cur_date + '.md')
+    with open(md_filename_path, "w", encoding='utf-8') as f:
+        f.write("# !UPDATED  -- " + cur_date + "\n\n")
+        for keyword in data.keys():
+            day_content = data[keyword]
+            if not day_content:
+                continue
+ 
+            # sort papers by date
+            day_content = sort_papers(day_content)
+
+            f.write(f">## **{keyword}**")
+            f.write("\n")
+            f.write('>---')
+            f.write("\n")
+            
+            cnt = 1
+            for _, v in day_content.items():
+                if v is not None:
+                    
+                    v_list = v.split('|')
+
+                    # f.write('**Publish Date:** ')
+                    # f.write(v_list[1])
+                    # f.write('<br />')
+                    # f.write("\n")
+
+                    f.write('>>**index:** ')
+                    f.write(str(cnt))
+                    f.write('<br />')
+                    f.write("\n")
+                    cnt += 1
+
+                    f.write('**Title:** ')
+                    f.write(v_list[2])
+                    f.write('<br />')
+                    f.write("\n")
+
+                    f.write('**Authors:** ')
+                    f.write(v_list[3])
+                    f.write('<br />')
+                    f.write("\n")
+
+                    f.write('**PDF:** ')
+                    # f.write(v_list[4])
+                    # example: [2401.02278v1](http://arxiv.org/abs/2401.02278v1)
+                    cur_txt = v_list[4].split(']')[-1].replace('(', '<').replace(')', '>')
+                    f.write(cur_txt)
+                    f.write('<br />')
+                    f.write("\n")
+
+                    f.write('**Code:** ')
+                    f.write(v_list[5])
+                    f.write('<br />')
+                    # f.write('<br />')
+                    f.write("\n")
+
+            f.write(f"\n")
+
     print("finished")
 
 
@@ -212,72 +284,76 @@ if __name__ == "__main__":
 
     keywords = dict()
     # keywords["CV"] = "cat:cs.CV"
-    # keywords["CVCV"] = "cat:cs.CV" + "AND" + , Computer Vision\, 
-    # keywords["CVDM"] = "cat:cs.CV" + "AND" + , Diffusion Model\, 
-    # keywords["NLP"] = "NLP" + "OR" + , Natural Language Processing\, 
+    # keywords["CVCV"] = "cat:cs.CV" + "AND" + , Computer Vision\,
+    # keywords["CVDM"] = "cat:cs.CV" + "AND" + , Diffusion Model\,
+    # keywords["NLP"] = "NLP" + "OR" + , Natural Language Processing\,
 
     # pre_txt = 'cat:cs.CV'
-    # keywords["分类"] = , image classification, video classification\, 
-    # keywords["检测/识别"] = , object detection, object recognition, recognition\, 
-    # keywords["分割"] = , segment, segmentation\, 
-    # keywords["超分辨"] = , superresolution\"OR\super resolution\, 
+    # keywords["分类"] = , image classification, video classification\,
+    # keywords["检测/识别"] = , object detection, object recognition, recognition\,
+    # keywords["分割"] = , segment, segmentation\,
+    # keywords["超分辨"] = , superresolution\"OR\super resolution\,
     # # keywords["分类/检测/识别/分割"] = , object detection, object recognition, recognition,  \
     # # #     image classification, video classification, segment,  \
-    # # #         segmentation, superresolution\"OR\super resolution\, 
-    # keywords["OCR"] = "ocr" + "OR" + , optical character recognition\, 
-    # keywords["Transformer"] = , transformer, attention\, 
-    # keywords["模型压缩/优化"] = , NAS, Network Architecture Search, Pruning, Quantization, Knowledge Distillation, Distillation, model optimizer\, 
-    # keywords["生成模型"] = , diffusion model, GAN, vae, Generative Adversarial Networ\, 
-    # keywords["多模态"] = , multi-modal, Multimodal, vae, Generative Adversarial Networ\, 
-    # keywords["Zero/Few-Shot Learning"] = , zero-shot, few-shot\, zero shot, few shot\, 
-    # keywords["半监督/无监督学习"] = , Semi-supervised, unsupervised\, 
+    # # #         segmentation, superresolution\"OR\super resolution\,
+    # keywords["OCR"] = "ocr" + "OR" + , optical character recognition\,
+    # keywords["Transformer"] = , transformer, attention\,
+    # keywords["模型压缩/优化"] = , NAS, Network Architecture Search, Pruning, Quantization, Knowledge Distillation, Distillation, model optimizer\,
+    # keywords["生成模型"] = , diffusion model, GAN, vae, Generative Adversarial Networ\,
+    # keywords["多模态"] = , multi-modal, Multimodal, vae, Generative Adversarial Networ\,
+    # keywords["Zero/Few-Shot Learning"] = , zero-shot, few-shot\, zero shot, few shot\,
+    # keywords["半监督/无监督学习"] = , Semi-supervised, unsupervised\,
     # keywords["3D相关"] = "3D" + "OR" + \
-    #     "3D detection, 3D reconstruction, 3D understanding\"\rendering\, 
+    #     "3D detection, 3D reconstruction, 3D understanding\"\rendering\,
     # keywords["图像理解"] = , Intrinsic Image Decomposition, Intrinsic Image,  \
-    #     relighting, recolor, \image composition\, 
+    #     relighting, recolor, \image composition\,
     # keywords["Nerf"] = "Nerf" + "OR" + \
-    #     "Neural Radiance Fields, 3d gaussian splatting\, 
-    # keywords["GNN"] = "GNN" + "OR" + , Graph Neural Network\, 
+    #     "Neural Radiance Fields, 3d gaussian splatting\,
+    # keywords["GNN"] = "GNN" + "OR" + , Graph Neural Network\,
     # keywords["其他"] = "cat:cs.CV"
-    #
-    
-    # import time
-    
+
     query = "cat:cs.CV"
     search_engine = arxiv.Search(
         query=query,
-        max_results=500,
+        max_results=max_results,
         sort_by=arxiv.SortCriterion.SubmittedDate,
-        sort_order = arxiv.SortOrder.Descending
+        sort_order=arxiv.SortOrder.Descending
     )
 
-    keywords["分类/检测/识别/分割"] = ['image classification', 'video classification', \
-                               'object detection', 'object recognition', 'recognition', \
-                                'segment', 'segmentation', 'superresolution', 'super resolution']
-    keywords["OCR"] = ['optical character recognition', 'ocr'] 
-    keywords["Transformer"] = ['transformer', 'attention'] 
-    keywords["模型压缩/优化"] = ['NAS', 'Network Architecture Search', 'Pruning', 'Quantization', \
+    found_num = len(list(client.results(search_engine)))
+    print('found papers: ', found_num)
+
+    # print('found papers: ', len(list(client.results(search_engine))))
+
+    keywords["分类/检测/识别/分割"] = ['image classification', 'video classification',
+                               'object detection', 'object recognition', 'recognition',
+                               'segment', 'segmentation', 'superresolution', 'super resolution']
+    keywords["OCR"] = ['optical character recognition', 'ocr']
+    keywords["Transformer"] = ['transformer', 'attention']
+    keywords["模型压缩/优化"] = ['NAS', 'Network Architecture Search', 'Pruning', 'Quantization',
                            'Knowledge Distillation', 'Distillation, model optimizer']
-    keywords["生成模型"] = ['diffusion model', 'GAN', 'vae', 'Generative Adversarial Networ']
+    keywords["生成模型"] = ['diffusion model', 'GAN',
+                        'vae', 'Generative Adversarial Networ']
     keywords["多模态"] = ['multi-modal', 'Multimodal']
-    keywords["Zero/Few-Shot Learning"] = ['zero-shot', 'few-shot', 'zero shot', 'few shot']
+    keywords["Zero/Few-Shot Learning"] = ['zero-shot',
+                                          'few-shot', 'zero shot', 'few shot']
     keywords["半监督/无监督学习"] = ['Semi-supervised', 'unsupervised']
-    keywords["3D相关"] = ["3D", '3D detection', '3D reconstruction', '3D understanding', 'rendering']
-    keywords["图像理解"] = ['Intrinsic Image Decomposition', 'Intrinsic Image',  \
-        'relighting', 'recolor', 'image composition'] 
-    keywords["Nerf"] = ["Nerf", 'Neural Radiance Fields', '3d gaussian splatting']
+    keywords["3D相关"] = ["3D", '3D detection',
+                        '3D reconstruction', '3D understanding', 'rendering']
+    keywords["图像理解"] = ['Intrinsic Image Decomposition', 'Intrinsic Image',
+                        'relighting', 'recolor', 'image composition']
+    keywords["Nerf"] = [
+        "Nerf", 'Neural Radiance Fields', '3d gaussian splatting']
     keywords["GNN"] = ["GNN", 'Graph Neural Network']
     keywords["其他"] = ""
 
     for algo_name, algo_txt in keywords.items():
         print("Keyword: ", algo_name)
-
-        data, data_web = get_daily_papers(search_engine, algo_txt, algo_name=algo_name)
+        data, data_web = get_daily_papers(
+            search_engine, algo_txt, algo_name=algo_name)
         data_collector.append(data)
         data_collector_web.append(data_web)
-
         print("\n")
-        # time.sleep(10)
 
     # update README.md file
     json_file = os.path.join(base_path, "tmp/cv-arxiv-daily.json")
@@ -291,7 +367,7 @@ if __name__ == "__main__":
     json_to_md(json_file)
 
     # # update docs/index.md file
-    # json_file = "./cv-arxiv-daily-web.json"
+    # json_file = os.path.join(base_path, "tmp/cv-arxiv-daily-web.json")
     # if ~os.path.exists(json_file):
     #     with open(json_file,'w')as a:
     #         print("create " + json_file)
