@@ -107,8 +107,8 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
         paper_title_zh_cn = GoogleTranslator(
             source='en', target='zh-CN').translate(paper_title)
         # print('paper_title_zh_cn: ', paper_title_zh_cn)
-        # paper_abstract_zh_cn = GoogleTranslator(
-        #     source='en', target='zh-CN').translate(paper_abstract)
+        paper_abstract_zh_cn = GoogleTranslator(
+            source='en', target='zh-CN').translate(paper_abstract)
 
         ver_pos = paper_id.find('v')
         if ver_pos == -1:
@@ -124,12 +124,12 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
                 repo_url = r["official"]["url"]
                 # 'et.al.' -> ''
                 content[
-                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_title_zh_cn}|{paper_first_author}|[{paper_id}]({paper_url})|**[link]({repo_url})**|\n"
+                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_title_zh_cn}|{paper_first_author}|{paper_abstract}|{paper_abstract_zh_cn}|[{paper_id}]({paper_url})|**[link]({repo_url})**|\n"
                 content_to_web[
                     paper_key] = f"- **{update_time}**, **{paper_title}**, {paper_first_author}, [PDF:{paper_id}]({paper_url}), **[code]({repo_url})**\n"
             else:
                 content[
-                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_title_zh_cn}|{paper_first_author}|[{paper_id}]({paper_url})|null|\n"
+                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_title_zh_cn}|{paper_first_author}|{paper_abstract}|{paper_abstract_zh_cn}|[{paper_id}]({paper_url})|null|\n"
                 content_to_web[
                     paper_key] = f"- **{update_time}**, **{paper_title}**, {paper_first_author}, [PDF:{paper_id}]({paper_url})\n"
         except Exception as e:
@@ -205,13 +205,14 @@ def json_to_md(filename, to_web=False):
             # the head of each part
             f.write(f"## {keyword}\n\n")
 
+            #add |{paper_abstract}|{paper_abstract_zh_cn}
             if to_web == False:
                 f.write("|Publish Date|Title|Title_CN|Authors|PDF|Code|\n" +
                         "|---|---|---|---|---|---|\n")
-            else:
-                f.write("| Publish Date | Title | Authors | PDF | Code |\n")
-                f.write(
-                    "|:---------|:-----------------------|:---------|:------|:------|\n")
+            # else:
+            #     f.write("| Publish Date | Title | Authors | PDF | Code |\n")
+            #     f.write(
+            #         "|:---------|:-----------------------|:---------|:------|:------|\n")
 
             # sort papers by date
             day_content = sort_papers(day_content)
@@ -220,10 +221,32 @@ def json_to_md(filename, to_web=False):
                 if v is not None:
                     # example: [2401.02278v1](http://arxiv.org/abs/2401.02278v1)
                     v_list = v.split('|')
-                    pdf_url = v_list[4].split(
+                    # 5, 6 分别表示中英文摘要
+                    valid_index = [1, 2, 3, 4, 5, 6, 7, 8]
+
+                    pdf_url = v_list[7].split(
                         ']')[-1].replace('(', '<').replace(')', '>')
-                    v_list[4] = pdf_url
-                    new_v = "|".join(vv for vv in v_list)
+                    v_list[7] = pdf_url
+
+                    new_v = ''
+                    for idx in valid_index:
+                        cur_v = v_list[idx]
+
+                        if idx in [5, 6]: 
+                            continue
+                        # if idx == 5:
+                        #     abs = "原文: " + v_list[idx]
+                        #     cur_v = "<details> <summary>abstract</summary>{}</details>".format(abs)
+                        # if idx == 6:
+                        #     abs = "译文: " + v_list[idx]
+                        #     cur_v = "<details> <summary>abstract</summary>{}</details>".format(abs)
+
+                        if idx == 1:
+                            new_v = cur_v
+                        else:
+                            new_v = new_v + '|' + cur_v
+                        # new_v = "|".join(vv for vv in v_list)
+                    new_v += '\n'
                     f.write(new_v)
 
             f.write(f"\n")
@@ -249,6 +272,7 @@ def json_to_md(filename, to_web=False):
             f.write("\n")
 
             cnt = 1
+            # |Publish Date|Title|Title_CN|Authors|Paper Abstract|PDF|Code|
             for _, v in day_content.items():
                 if v is not None:
 
@@ -270,7 +294,7 @@ def json_to_md(filename, to_web=False):
                     f.write('<br />')
                     f.write("\n")
 
-                    f.write('**文章名:** ')
+                    f.write('**Title_cn:** ')
                     f.write(v_list[3])
                     f.write('<br />')
                     f.write("\n")
@@ -280,9 +304,25 @@ def json_to_md(filename, to_web=False):
                     f.write('<br />')
                     f.write("\n")
 
+                    # 摘要
+                    abs_en = "" + v_list[5]
+                    cur_v = "<details><summary>原文: </summary>{}</details>".format(abs_en)
+                    f.write('**Abstract:** ')
+                    f.write(cur_v)
+                    # f.write('<br />')
+                    f.write("\n")
+
+                    abs_cn = "" + v_list[6]
+                    cur_v = "<details><summary>译文: </summary>{}</details>".format(abs_cn)
+                    f.write('**Abstract_cn:** ')
+                    f.write(cur_v)
+                    # f.write('<br />')
+                    f.write("\n")
+
+
                     f.write('**PDF:** ')
                     # f.write(v_list[4])
-                    cur_t = v_list[5].split(
+                    cur_t = v_list[7].split(
                         ']')[-1].replace('(', '<').replace(')', '>')
                     f.write(cur_t)
                     f.write('<br />')
@@ -290,7 +330,7 @@ def json_to_md(filename, to_web=False):
 
                     f.write('**Code:** ')
                     # f.write(v_list[5])
-                    cur_t = v_list[6].split(
+                    cur_t = v_list[8].split(
                         ']')[-1].replace('(', '<').replace(')', '>')
                     f.write(cur_t)
                     f.write('<br />')
