@@ -1,3 +1,15 @@
+from deep_translator import (GoogleTranslator,
+                             ChatGptTranslator,
+                             MicrosoftTranslator,
+                             PonsTranslator,
+                             LingueeTranslator,
+                             MyMemoryTranslator,
+                             YandexTranslator,
+                             PapagoTranslator,
+                             DeeplTranslator,
+                             QcriTranslator,
+                             single_detection,
+                             batch_detection)
 import sys
 import datetime
 import requests
@@ -9,8 +21,11 @@ import os
 base_path = os.path.dirname(__file__)
 sys.path.append(base_path)
 
+
 base_url = "https://arxiv.paperswithcode.com/api/v0/papers/"
+
 max_results = 500
+
 cur_date = str(datetime.date.today() + datetime.timedelta(days=-1))
 out_dir_name = cur_date.split('-')[0] + '-' + cur_date.split('-')[1]
 out_dir = os.path.join(base_path, '../data/', out_dir_name)
@@ -44,14 +59,14 @@ def sort_papers(papers):
     return output
 
 
-appeared_ids = []
-
-
 def found_keyword(title, abstract, keys):
     for key in keys:
         if key.lower() in title.lower() or key.lower() in abstract.lower():
             return True
     return False
+
+
+appeared_ids = []
 
 
 def get_daily_papers(search_engine, algo_txt, algo_name=''):
@@ -60,14 +75,13 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
     content = dict()
     content_to_web = dict()
 
-    # content
-    output = dict()
-
     cnt = 0
+    print('looked paper: ', len(appeared_ids))
     for result in client.results(search_engine):
+
         paper_id = result.get_short_id()
         paper_title = result.title
-        paper_url = result.entry_id
+        paper_url = result.pdf_url
 
         code_url = base_url + paper_id
         paper_abstract = result.summary.replace("\n", " ")
@@ -89,6 +103,7 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
             continue
         else:
             appeared_ids.append(paper_id)
+
         # print('/n**************')
         # print('paper_id: ', paper_id)
         # print('paper_title: ', paper_title)
@@ -100,33 +115,39 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
         # print('update_time: ', update_time)
         # print('code_url: ', code_url)
 
+        paper_title_zh_cn = GoogleTranslator(
+            source='en', target='zh-CN').translate(paper_title)
+        print('paper_title_zh_cn: ', paper_title_zh_cn)
+        # paper_abstract_zh_cn = GoogleTranslator(
+        #     source='en', target='zh-CN').translate(paper_abstract)
+
         ver_pos = paper_id.find('v')
         if ver_pos == -1:
             paper_key = paper_id
         else:
             paper_key = paper_id[0:ver_pos]
+        cnt += 1
 
         try:
             r = requests.get(code_url).json()
             # source code link
             if "official" in r and r["official"]:
-                cnt += 1
                 repo_url = r["official"]["url"]
-                #  -> ''
+                # 'et.al.' -> ''
                 content[
-                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_first_author}|[{paper_id}]({paper_url})|**[link]({repo_url})**|\n"
+                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_title_zh_cn}|{paper_first_author}|[{paper_id}]({paper_url})|**[link]({repo_url})**|\n"
                 content_to_web[
                     paper_key] = f"- **{update_time}**, **{paper_title}**, {paper_first_author}, [PDF:{paper_id}]({paper_url}), **[code]({repo_url})**\n"
             else:
                 content[
-                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_first_author}|[{paper_id}]({paper_url})|null|\n"
+                    paper_key] = f"|**{update_time}**|**{paper_title}**|{paper_title_zh_cn}|{paper_first_author}|[{paper_id}]({paper_url})|null|\n"
                 content_to_web[
                     paper_key] = f"- **{update_time}**, **{paper_title}**, {paper_first_author}, [PDF:{paper_id}]({paper_url})\n"
-
         except Exception as e:
             print(f"exception: {e} with id: {paper_key}")
 
-    print('found num: ', len(content))
+    print('found num: ', cnt)
+
     data = {algo_name: content}
     data_web = {algo_name: content_to_web}
     return data, data_web
@@ -197,7 +218,7 @@ def json_to_md(filename, to_web=False):
 
             if to_web == False:
                 f.write("|Publish Date|Title|Authors|PDF|Code|\n" +
-                        "|---|---|---|---|---|\n")
+                        "|---|---|---|---|---|---|\n")
             else:
                 f.write("| Publish Date | Title | Authors | PDF | Code |\n")
                 f.write(
@@ -210,7 +231,8 @@ def json_to_md(filename, to_web=False):
                 if v is not None:
                     # example: [2401.02278v1](http://arxiv.org/abs/2401.02278v1)
                     v_list = v.split('|')
-                    pdf_url = v_list[4].split(']')[-1].replace('(', '<').replace(')', '>')
+                    pdf_url = v_list[4].split(
+                        ']')[-1].replace('(', '<').replace(')', '>')
                     v_list[4] = pdf_url
                     new_v = "|".join(vv for vv in v_list)
                     f.write(new_v)
@@ -228,7 +250,7 @@ def json_to_md(filename, to_web=False):
             day_content = data[keyword]
             if not day_content:
                 continue
- 
+
             # sort papers by date
             day_content = sort_papers(day_content)
 
@@ -236,11 +258,11 @@ def json_to_md(filename, to_web=False):
             f.write("\n")
             f.write('>---')
             f.write("\n")
-            
+
             cnt = 1
             for _, v in day_content.items():
                 if v is not None:
-                    
+
                     v_list = v.split('|')
 
                     # f.write('**Publish Date:** ')
@@ -259,21 +281,28 @@ def json_to_md(filename, to_web=False):
                     f.write('<br />')
                     f.write("\n")
 
-                    f.write('**Authors:** ')
+                    f.write('**文章名:** ')
                     f.write(v_list[3])
+                    f.write('<br />')
+                    f.write("\n")
+
+                    f.write('**Authors:** ')
+                    f.write(v_list[4])
                     f.write('<br />')
                     f.write("\n")
 
                     f.write('**PDF:** ')
                     # f.write(v_list[4])
-                    cur_t = v_list[4].split(']')[-1].replace('(', '<').replace(')', '>')
+                    cur_t = v_list[5].split(
+                        ']')[-1].replace('(', '<').replace(')', '>')
                     f.write(cur_t)
                     f.write('<br />')
                     f.write("\n")
 
                     f.write('**Code:** ')
                     # f.write(v_list[5])
-                    cur_t = v_list[5].split(']')[-1].replace('(', '<').replace(')', '>')
+                    cur_t = v_list[6].split(
+                        ']')[-1].replace('(', '<').replace(')', '>')
                     f.write(cur_t)
                     f.write('<br />')
                     f.write("\n")
@@ -284,39 +313,8 @@ def json_to_md(filename, to_web=False):
 
 
 if __name__ == "__main__":
-    data_collector = []
-    data_collector_web = []
 
-    keywords = dict()
-    # keywords["CV"] = "cat:cs.CV"
-    # keywords["CVCV"] = "cat:cs.CV" + "AND" + , Computer Vision\,
-    # keywords["CVDM"] = "cat:cs.CV" + "AND" + , Diffusion Model\,
-    # keywords["NLP"] = "NLP" + "OR" + , Natural Language Processing\,
-
-    # pre_txt = 'cat:cs.CV'
-    # keywords["分类"] = , image classification, video classification\,
-    # keywords["检测/识别"] = , object detection, object recognition, recognition\,
-    # keywords["分割"] = , segment, segmentation\,
-    # keywords["超分辨"] = , superresolution\"OR\super resolution\,
-    # # keywords["分类/检测/识别/分割"] = , object detection, object recognition, recognition,  \
-    # # #     image classification, video classification, segment,  \
-    # # #         segmentation, superresolution\"OR\super resolution\,
-    # keywords["OCR"] = "ocr" + "OR" + , optical character recognition\,
-    # keywords["Transformer"] = , transformer, attention\,
-    # keywords["模型压缩/优化"] = , NAS, Network Architecture Search, Pruning, Quantization, Knowledge Distillation, Distillation, model optimizer\,
-    # keywords["生成模型"] = , diffusion model, GAN, vae, Generative Adversarial Networ\,
-    # keywords["多模态"] = , multi-modal, Multimodal, vae, Generative Adversarial Networ\,
-    # keywords["Zero/Few-Shot Learning"] = , zero-shot, few-shot\, zero shot, few shot\,
-    # keywords["半监督/无监督学习"] = , Semi-supervised, unsupervised\,
-    # keywords["3D相关"] = "3D" + "OR" + \
-    #     "3D detection, 3D reconstruction, 3D understanding\"\rendering\,
-    # keywords["图像理解"] = , Intrinsic Image Decomposition, Intrinsic Image,  \
-    #     relighting, recolor, \image composition\,
-    # keywords["Nerf"] = "Nerf" + "OR" + \
-    #     "Neural Radiance Fields, 3d gaussian splatting\,
-    # keywords["GNN"] = "GNN" + "OR" + , Graph Neural Network\,
-    # keywords["其他"] = "cat:cs.CV"
-
+    print('start query arxiv paper')
     query = "cat:cs.CV"
     search_engine = arxiv.Search(
         query=query,
@@ -328,36 +326,38 @@ if __name__ == "__main__":
     found_num = len(list(client.results(search_engine)))
     print('found papers: ', found_num)
 
-    # print('found papers: ', len(list(client.results(search_engine))))
-
+    keywords = dict()
+    # keywords["Zero/Few-Shot Learning"] = []
+    keywords["各类学习方式"] = ['zero-shot', 'few-shot', 'zero shot', 'few shot''Semi-supervised',
+                          'unsupervised', 'Continual Learning', 'Incremental Learning', 'Contrastive Learning']
     keywords["分类/检测/识别/分割"] = ['image classification', 'video classification',
                                'object detection', 'object recognition', 'recognition',
                                'segment', 'segmentation', 'superresolution', 'super resolution']
     keywords["OCR"] = ['optical character recognition', 'ocr']
-    keywords["Transformer"] = ['transformer', 'attention']
     keywords["模型压缩/优化"] = ['NAS', 'Network Architecture Search', 'Pruning', 'Quantization',
-                           'Knowledge Distillation', 'Distillation, model optimizer']
-    keywords["生成模型"] = ['diffusion model', 'GAN',
-                        'vae', 'Generative Adversarial Networ']
-    keywords["多模态"] = ['multi-modal', 'Multimodal']
-    keywords["Zero/Few-Shot Learning"] = ['zero-shot',
-                                          'few-shot', 'zero shot', 'few shot']
-    keywords["半监督/无监督学习"] = ['Semi-supervised', 'unsupervised']
-    keywords["3D相关"] = ["3D", '3D detection',
-                        '3D reconstruction', '3D understanding', 'rendering']
-    keywords["图像理解"] = ['Intrinsic Image Decomposition', 'Intrinsic Image',
-                        'relighting', 'recolor', 'image composition']
+                           'Knowledge Distillation', 'Distillation', 'model optimizer']
     keywords["Nerf"] = [
         "Nerf", 'Neural Radiance Fields', '3d gaussian splatting']
-    keywords["GNN"] = ["GNN", 'Graph Neural Network']
+    keywords["生成模型"] = ['diffusion model', 'GAN',
+                        'vae', 'Generative Adversarial Networ', 'generative model']
+    keywords["多模态"] = ['multi-modal', 'Multimodal',
+                       'mllm', 'vqa', 'vision question answer']
+    keywords["LLM"] = ['llm', 'language large model']
+    keywords["Transformer"] = ['transformer', 'attention',
+                               'self-attention', 'cross-attention', 'cross attention']
+    keywords["3D/CG"] = ["3D", '3D detection', '3D reconstruction', '3D understanding',
+                         'rendering', 'Computer Graphics', 'Modeling', 'Animation', 'Interactive graphics']
+    keywords["图像理解"] = ['Intrinsic Image Decomposition', 'Intrinsic Image', 'relighting',
+                        'recolor', 'image composition', 'normal estimation', 'depth estimation', 'lighting']
+    keywords["GNN"] = ["GNN", 'Graph Neural Network', 'relational reasoning']
     keywords["其他"] = ""
 
+    data_collector = []
     for algo_name, algo_txt in keywords.items():
         print("Keyword: ", algo_name)
         data, data_web = get_daily_papers(
             search_engine, algo_txt, algo_name=algo_name)
-        data_collector.append(data)
-        data_collector_web.append(data_web)
+        # data_collector.append(data)
         print("\n")
 
     # update README.md file
@@ -370,14 +370,3 @@ if __name__ == "__main__":
     update_json_file(json_file, data_collector)
     # json data to markdown
     json_to_md(json_file)
-
-    # # update docs/index.md file
-    # json_file = os.path.join(base_path, "tmp/cv-arxiv-daily-web.json")
-    # if ~os.path.exists(json_file):
-    #     with open(json_file,'w')as a:
-    #         print("create " + json_file)
-
-    # # # update json data
-    # update_json_file(json_file, data_collector)
-    # # json data to markdown
-    # json_to_md(json_file, to_web=True)
