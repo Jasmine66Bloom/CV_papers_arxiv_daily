@@ -38,6 +38,7 @@ jobs:
           pip install requests
           pip install pyyaml
           pip install datetime
+          pip install deep_translator
 
       - name: Run daily arxiv 
         run: |
