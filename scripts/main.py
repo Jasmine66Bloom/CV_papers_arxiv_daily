@@ -207,7 +207,7 @@ def json_to_md(filename, to_web=False):
 
             if to_web == False:
                 f.write("|Publish Date|Title|Title_CN|Authors|PDF|Code|\n" +
-                        "|---|---|---|---|---|---|---|\n")
+                        "|---|---|---|---|---|---|\n")
             else:
                 f.write("| Publish Date | Title | Authors | PDF | Code |\n")
                 f.write(
