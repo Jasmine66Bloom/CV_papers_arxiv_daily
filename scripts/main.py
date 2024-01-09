@@ -65,7 +65,7 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
     content_to_web = dict()
 
     cnt = 0
-    print('looked paper: ', len(appeared_ids))
+    # print('looked paper: ', len(appeared_ids))
     for result in client.results(search_engine):
 
         paper_id = result.get_short_id()
@@ -106,7 +106,7 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
 
         paper_title_zh_cn = GoogleTranslator(
             source='en', target='zh-CN').translate(paper_title)
-        print('paper_title_zh_cn: ', paper_title_zh_cn)
+        # print('paper_title_zh_cn: ', paper_title_zh_cn)
         # paper_abstract_zh_cn = GoogleTranslator(
         #     source='en', target='zh-CN').translate(paper_abstract)
 
@@ -206,8 +206,8 @@ def json_to_md(filename, to_web=False):
             f.write(f"## {keyword}\n\n")
 
             if to_web == False:
-                f.write("|Publish Date|Title|Authors|PDF|Code|\n" +
-                        "|---|---|---|---|---|---|\n")
+                f.write("|Publish Date|Title|Title_CN|Authors|PDF|Code|\n" +
+                        "|---|---|---|---|---|---|---|\n")
             else:
                 f.write("| Publish Date | Title | Authors | PDF | Code |\n")
                 f.write(
@@ -346,7 +346,7 @@ if __name__ == "__main__":
         print("Keyword: ", algo_name)
         data, data_web = get_daily_papers(
             search_engine, algo_txt, algo_name=algo_name)
-        # data_collector.append(data)
+        data_collector.append(data)
         print("\n")
 
     # update README.md file
