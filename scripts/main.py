@@ -205,7 +205,7 @@ def json_to_md(filename, to_web=False):
             # the head of each part
             f.write(f"## {keyword}\n\n")
 
-            #add |{paper_abstract}|{paper_abstract_zh_cn}
+            # add |{paper_abstract}|{paper_abstract_zh_cn}
             if to_web == False:
                 f.write("|Publish Date|Title|Title_CN|Authors|PDF|Code|\n" +
                         "|---|---|---|---|---|---|\n")
@@ -232,7 +232,7 @@ def json_to_md(filename, to_web=False):
                     for idx in valid_index:
                         cur_v = v_list[idx]
 
-                        if idx in [5, 6]: 
+                        if idx in [5, 6]:
                             continue
                         # if idx == 5:
                         #     abs = "原文: " + v_list[idx]
@@ -306,19 +306,20 @@ def json_to_md(filename, to_web=False):
 
                     # 摘要
                     abs_en = "" + v_list[5]
-                    cur_v = "<details><summary>原文: </summary>{}</details>".format(abs_en)
+                    cur_v = "<details><summary>原文: </summary>{}</details>".format(
+                        abs_en)
                     f.write('**Abstract:** ')
                     f.write(cur_v)
                     # f.write('<br />')
                     f.write("\n")
 
                     abs_cn = "" + v_list[6]
-                    cur_v = "<details><summary>译文: </summary>{}</details>".format(abs_cn)
+                    cur_v = "<details><summary>译文: </summary>{}</details>".format(
+                        abs_cn)
                     f.write('**Abstract_cn:** ')
                     f.write(cur_v)
                     # f.write('<br />')
                     f.write("\n")
-
 
                     f.write('**PDF:** ')
                     # f.write(v_list[4])
@@ -356,12 +357,12 @@ if __name__ == "__main__":
     print('found papers: ', found_num)
 
     keywords = dict()
-    # keywords["Zero/Few-Shot Learning"] = []
+
     keywords["各类学习方式"] = ['zero-shot', 'few-shot', 'zero shot', 'few shot''Semi-supervised',
                           'unsupervised', 'Continual Learning', 'Incremental Learning', 'Contrastive Learning']
-    keywords["分类/检测/识别/分割"] = ['image classification', 'video classification',
-                               'object detection', 'object recognition', 'recognition',
-                               'segment', 'segmentation', 'superresolution', 'super resolution']
+    keywords["分类/检测/识别/分割"] = ['Classification', 'image classification', 'video classification',
+                               'object detection', 'Detection', 'object recognition', 'recognition',
+                               'segment', 'segmentation', 'superresolution', 'super resolution', 'Object Tracking']
     keywords["OCR"] = ['optical character recognition', 'ocr']
     keywords["模型压缩/优化"] = ['NAS', 'Network Architecture Search', 'Pruning', 'Quantization',
                            'Knowledge Distillation', 'Distillation', 'model optimizer']
@@ -372,7 +373,7 @@ if __name__ == "__main__":
     keywords["多模态"] = ['multi-modal', 'Multimodal',
                        'mllm', 'vqa', 'vision question answer']
     keywords["LLM"] = ['llm', 'language large model']
-    keywords["Transformer"] = ['transformer', 'attention',
+    keywords["Transformer"] = ['transformer', 'attention', 'transformation'
                                'self-attention', 'cross-attention', 'cross attention']
     keywords["3D/CG"] = ["3D", '3D detection', '3D reconstruction', '3D understanding',
                          'rendering', 'Computer Graphics', 'Modeling', 'Animation', 'Interactive graphics']
@@ -397,5 +398,5 @@ if __name__ == "__main__":
 
     # update json data
     update_json_file(json_file, data_collector)
-    # json data to markdown
+    # # json data to markdown
     json_to_md(json_file)
