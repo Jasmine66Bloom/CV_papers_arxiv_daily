@@ -69,13 +69,13 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
     for result in client.results(search_engine):
 
         paper_id = result.get_short_id()
-        paper_title = result.title
+        paper_title = result.title.replace('|', '')
         paper_url = result.pdf_url
 
         code_url = base_url + paper_id
-        paper_abstract = result.summary.replace("\n", " ")
-        paper_authors = get_authors(result.authors)
-        paper_first_author = get_authors(result.authors, first_author=True)
+        paper_abstract = result.summary.replace("\n", " ").replace('|', '')
+        paper_authors = get_authors(result.authors).replace('|', '')
+        paper_first_author = get_authors(result.authors, first_author=True).replace('|', '')
         primary_category = result.primary_category
 
         publish_time = result.published.date()
@@ -196,7 +196,8 @@ def json_to_md(filename, to_web=False):
         if to_web == True:
             f.write("---\n" + "layout: default\n" + "---\n\n")
 
-        f.write("## !UPDATED  -- " + cur_date + "\n\n")
+        # f.write("## [UPDATED]--**" + cur_date + "** (Publish Time))\n\n")
+        f.write("## [UPDATED!] **" + cur_date + "** (Publish Time)\n\n")
 
         for keyword in data.keys():
             day_content = data[keyword]
@@ -257,7 +258,8 @@ def json_to_md(filename, to_web=False):
         os.makedirs(md_filename_dir)
     md_filename_path = os.path.join(md_filename_dir, cur_date + '.md')
     with open(md_filename_path, "w", encoding='utf-8') as f:
-        f.write("# !UPDATED  -- " + cur_date + "\n\n")
+        # f.write("# !UPDATED  -- " + cur_date + "\n\n")
+        f.write("## [UPDATED!] **" + cur_date + "** (Publish Time)\n\n")
         for keyword in data.keys():
             day_content = data[keyword]
             if not day_content:
@@ -358,16 +360,13 @@ if __name__ == "__main__":
 
     keywords = dict()
 
-    keywords["各类学习方式"] = ['zero-shot', 'few-shot', 'zero shot', 'few shot''Semi-supervised',
-                          'unsupervised', 'Continual Learning', 'Incremental Learning', 'Contrastive Learning']
     keywords["分类/检测/识别/分割"] = ['Classification', 'image classification', 'video classification',
                                'object detection', 'Detection', 'object recognition', 'recognition',
                                'segment', 'segmentation', 'superresolution', 'super resolution', 'Object Tracking']
-    keywords["OCR"] = ['optical character recognition', 'ocr']
     keywords["模型压缩/优化"] = ['NAS', 'Network Architecture Search', 'Pruning', 'Quantization',
                            'Knowledge Distillation', 'Distillation', 'model optimizer']
-    keywords["Nerf"] = [
-        "Nerf", 'Neural Radiance Fields', '3d gaussian splatting']
+    keywords["OCR"] = ['optical character recognition', 'ocr']
+    
     keywords["生成模型"] = ['diffusion model', 'GAN',
                         'vae', 'Generative Adversarial Networ', 'generative model']
     keywords["多模态"] = ['multi-modal', 'Multimodal',
@@ -375,11 +374,19 @@ if __name__ == "__main__":
     keywords["LLM"] = ['llm', 'language large model']
     keywords["Transformer"] = ['transformer', 'attention', 'transformation'
                                'self-attention', 'cross-attention', 'cross attention']
+    
+    keywords["Nerf"] = ["Nerf", 'Neural Radiance Fields']
+    keywords["3DGS"] = ['3d gaussian splatting', 'gaussian splatting']
     keywords["3D/CG"] = ["3D", '3D detection', '3D reconstruction', '3D understanding',
                          'rendering', 'Computer Graphics', 'Modeling', 'Animation', 'Interactive graphics']
+
+    keywords["各类学习方式"] = ['zero-shot', 'few-shot', 'zero shot', 'few shot', 'Semi-supervised',
+                          'unsupervised', 'Continual Learning', 'Incremental Learning', 'Contrastive Learning']
+    
+    keywords["GNN"] = ["GNN", 'Graph Neural Network', 'relational reasoning']
     keywords["图像理解"] = ['Intrinsic Image Decomposition', 'Intrinsic Image', 'relighting',
                         'recolor', 'image composition', 'normal estimation', 'depth estimation', 'lighting']
-    keywords["GNN"] = ["GNN", 'Graph Neural Network', 'relational reasoning']
+
     keywords["其他"] = ""
 
     data_collector = []
