@@ -252,94 +252,94 @@ def json_to_md(filename, to_web=False):
 
             f.write(f"\n")
 
-    # 写为 markdown 格式，微信公众号等
-    md_filename_dir = os.path.join(base_path, 'local', out_dir_name)
-    if not os.path.exists(md_filename_dir):
-        os.makedirs(md_filename_dir)
-    md_filename_path = os.path.join(md_filename_dir, cur_date + '.md')
-    with open(md_filename_path, "w", encoding='utf-8') as f:
-        # f.write("# !UPDATED  -- " + cur_date + "\n\n")
-        f.write("## [UPDATED!] **" + cur_date + "** (Publish Time)\n\n")
-        for keyword in data.keys():
-            day_content = data[keyword]
-            if not day_content:
-                continue
+    # # 写为 markdown 格式，微信公众号等
+    # md_filename_dir = os.path.join(base_path, 'local', out_dir_name)
+    # if not os.path.exists(md_filename_dir):
+    #     os.makedirs(md_filename_dir)
+    # md_filename_path = os.path.join(md_filename_dir, cur_date + '.md')
+    # with open(md_filename_path, "w", encoding='utf-8') as f:
+    #     # f.write("# !UPDATED  -- " + cur_date + "\n\n")
+    #     f.write("## [UPDATED!] **" + cur_date + "** (Publish Time)\n\n")
+    #     for keyword in data.keys():
+    #         day_content = data[keyword]
+    #         if not day_content:
+    #             continue
 
-            # sort papers by date
-            day_content = sort_papers(day_content)
+    #         # sort papers by date
+    #         day_content = sort_papers(day_content)
 
-            f.write(f">## **{keyword}**")
-            f.write("\n")
-            f.write('>---')
-            f.write("\n")
+    #         f.write(f">## **{keyword}**")
+    #         f.write("\n")
+    #         f.write('>---')
+    #         f.write("\n")
 
-            cnt = 1
-            # |Publish Date|Title|Title_CN|Authors|Paper Abstract|PDF|Code|
-            for _, v in day_content.items():
-                if v is not None:
+    #         cnt = 1
+    #         # |Publish Date|Title|Title_CN|Authors|Paper Abstract|PDF|Code|
+    #         for _, v in day_content.items():
+    #             if v is not None:
 
-                    v_list = v.split('|')
+    #                 v_list = v.split('|')
 
-                    # f.write('**Publish Date:** ')
-                    # f.write(v_list[1])
-                    # f.write('<br />')
-                    # f.write("\n")
+    #                 # f.write('**Publish Date:** ')
+    #                 # f.write(v_list[1])
+    #                 # f.write('<br />')
+    #                 # f.write("\n")
 
-                    f.write('>>**index:** ')
-                    f.write(str(cnt))
-                    f.write('<br />')
-                    f.write("\n")
-                    cnt += 1
+    #                 f.write('>>**index:** ')
+    #                 f.write(str(cnt))
+    #                 f.write('<br />')
+    #                 f.write("\n")
+    #                 cnt += 1
 
-                    f.write('**Title:** ')
-                    f.write(v_list[2])
-                    f.write('<br />')
-                    f.write("\n")
+    #                 f.write('**Title:** ')
+    #                 f.write(v_list[2])
+    #                 f.write('<br />')
+    #                 f.write("\n")
 
-                    f.write('**Title_cn:** ')
-                    f.write(v_list[3])
-                    f.write('<br />')
-                    f.write("\n")
+    #                 f.write('**Title_cn:** ')
+    #                 f.write(v_list[3])
+    #                 f.write('<br />')
+    #                 f.write("\n")
 
-                    f.write('**Authors:** ')
-                    f.write(v_list[4])
-                    f.write('<br />')
-                    f.write("\n")
+    #                 f.write('**Authors:** ')
+    #                 f.write(v_list[4])
+    #                 f.write('<br />')
+    #                 f.write("\n")
 
-                    # 摘要
-                    abs_en = "" + v_list[5]
-                    cur_v = "<details><summary>原文: </summary>{}</details>".format(
-                        abs_en)
-                    f.write('**Abstract:** ')
-                    f.write(cur_v)
-                    # f.write('<br />')
-                    f.write("\n")
+    #                 # 摘要
+    #                 abs_en = "" + v_list[5]
+    #                 cur_v = "<details><summary>原文: </summary>{}</details>".format(
+    #                     abs_en)
+    #                 f.write('**Abstract:** ')
+    #                 f.write(cur_v)
+    #                 # f.write('<br />')
+    #                 f.write("\n")
 
-                    abs_cn = "" + v_list[6]
-                    cur_v = "<details><summary>译文: </summary>{}</details>".format(
-                        abs_cn)
-                    f.write('**Abstract_cn:** ')
-                    f.write(cur_v)
-                    # f.write('<br />')
-                    f.write("\n")
+    #                 abs_cn = "" + v_list[6]
+    #                 cur_v = "<details><summary>译文: </summary>{}</details>".format(
+    #                     abs_cn)
+    #                 f.write('**Abstract_cn:** ')
+    #                 f.write(cur_v)
+    #                 # f.write('<br />')
+    #                 f.write("\n")
 
-                    f.write('**PDF:** ')
-                    # f.write(v_list[4])
-                    cur_t = v_list[7].split(
-                        ']')[-1].replace('(', '<').replace(')', '>')
-                    f.write(cur_t)
-                    f.write('<br />')
-                    f.write("\n")
+    #                 f.write('**PDF:** ')
+    #                 # f.write(v_list[4])
+    #                 cur_t = v_list[7].split(
+    #                     ']')[-1].replace('(', '<').replace(')', '>')
+    #                 f.write(cur_t)
+    #                 f.write('<br />')
+    #                 f.write("\n")
 
-                    f.write('**Code:** ')
-                    # f.write(v_list[5])
-                    cur_t = v_list[8].split(
-                        ']')[-1].replace('(', '<').replace(')', '>')
-                    f.write(cur_t)
-                    f.write('<br />')
-                    f.write("\n")
+    #                 f.write('**Code:** ')
+    #                 # f.write(v_list[5])
+    #                 cur_t = v_list[8].split(
+    #                     ']')[-1].replace('(', '<').replace(')', '>')
+    #                 f.write(cur_t)
+    #                 f.write('<br />')
+    #                 f.write("\n")
 
-            f.write(f"\n")
+    #         f.write(f"\n")
 
     print("finished")
 
