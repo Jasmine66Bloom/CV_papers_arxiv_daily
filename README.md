@@ -2,7 +2,10 @@
 **Daily feed of this day's research articles about Computer Vision published to https://arxiv.org.**
 > 注：文章更新比真实日期会晚一天，且周末两天不更新
 
-## 2024.1
+## 2024.02
+* [2024-02-01.md](./data/2024-02/2024-02-01.md)
+
+## 2024.01
 * [2024-01-31.md](./data/2024-01/2024-01-31.md)
 * [2024-01-30.md](./data/2024-01/2024-01-30.md)
 * [2024-01-29.md](./data/2024-01/2024-01-29.md)
