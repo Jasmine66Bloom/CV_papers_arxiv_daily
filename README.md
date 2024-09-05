@@ -1,7 +1,14 @@
 # CV_papers_arxiv_daily
 **Daily feed of this day's research articles about Computer Vision published to https://arxiv.org.**
 
+
 ## 2024.08
+* [2024-09-03.md](./data/2024-09/2024-09-03.md)
+* [2024-09-02.md](./data/2024-09/2024-09-02.md)
+* [2024-09-01.md](./data/2024-09/2024-09-01.md)
+
+## 2024.08
+* [2024-08-31.md](./data/2024-08/2024-08-31.md)
 * [2024-08-30.md](./data/2024-08/2024-08-30.md)
 * [2024-08-29.md](./data/2024-08/2024-08-29.md)
 * [2024-08-28.md](./data/2024-08/2024-08-28.md)
