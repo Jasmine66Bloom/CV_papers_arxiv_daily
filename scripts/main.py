@@ -93,17 +93,6 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
         else:
             appeared_ids.append(paper_id)
 
-        # print('/n**************')
-        # print('paper_id: ', paper_id)
-        # print('paper_title: ', paper_title)
-        # print('paper_url: ', paper_url)
-        # print('paper_abstract: ', paper_abstract)
-        # print('paper_authors: ', paper_authors)
-        # print('primary_category: ', primary_category)
-        # print('publish_time: ', publish_time)
-        # print('update_time: ', update_time)
-        # print('code_url: ', code_url)
-
         paper_title_zh_cn = GoogleTranslator(
             source='en', target='zh-CN').translate(paper_title)
         # print('paper_title_zh_cn: ', paper_title_zh_cn)
