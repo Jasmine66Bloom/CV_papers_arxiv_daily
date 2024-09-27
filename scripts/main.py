@@ -1,10 +1,11 @@
-from deep_translator import GoogleTranslator
 import sys
 import datetime
 import requests
 import json
 import arxiv
 import re
+
+from zhipuai import ZhipuAI
 
 import os
 base_path = os.path.dirname(__file__)
@@ -22,6 +23,26 @@ if not os.path.exists(out_dir):
     os.makedirs(out_dir)
 
 client = arxiv.Client()
+
+api_key = '1e8f0dd1b174e7b06bb3bce603856f62.qY4xvp6L8wEOJlRN'
+zp_client = ZhipuAI(api_key=api_key)  # 填写您自己的APIKey
+
+prompt = '你是一个翻译专家，你的任务是把AI技术论文的英文标题翻译为中文。\
+    翻译结果必须准确、凝练、具备算法技术专业性。\
+    算法相关的缩写、专有词语、简称，不需要翻译。\
+    直接输出翻译后的中文标题，除了中文标题以外的其他任何内容都不要，只能输出一行。'
+
+
+def call_llm(cont):
+    response = zp_client.chat.completions.create(
+        model="glm-4-flash",  # 填写需要调用的模型编码
+        messages=[
+            {"role": "system", "content": prompt},
+            {"role": "user", "content": "英文为：%s" % cont}
+        ],
+    )
+    resp = response.choices[0].message
+    return resp.content
 
 
 def get_authors(authors, first_author=False):
@@ -58,7 +79,7 @@ def found_keyword(title, abstract, keys):
 appeared_ids = []
 
 
-def get_daily_papers(search_engine, algo_txt, algo_name=''):
+def get_daily_papers(search_result_list, algo_txt, algo_name=''):
 
     # output
     content = dict()
@@ -66,20 +87,27 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
 
     cnt = 0
     # print('looked paper: ', len(appeared_ids))
-    for result in client.results(search_engine):
+    for result in search_result_list:
 
-        paper_id = result.get_short_id()
-        paper_title = result.title.replace('|', '')
-        paper_url = result.pdf_url
+        paper_id = result['paper_id']
+        paper_title = result['title'].replace('|', '').replace("\n", " ")
+        while "\n" in paper_title:
+            paper_title = paper_title.replace("\n", " ")
+        paper_url = result['link'].replace('abs', 'pdf')
 
         code_url = base_url + paper_id
-        paper_abstract = result.summary.replace("\n", " ").replace('|', '')
-        paper_authors = get_authors(result.authors).replace('|', '')
-        paper_first_author = get_authors(result.authors, first_author=True).replace('|', '')
-        primary_category = result.primary_category
+        paper_abstract = result['summary'].replace("\n", " ").replace('|', '')
+        while "\n" in paper_abstract:
+            paper_abstract = paper_abstract.replace("\n", " ")
+        # paper_authors = result['authors']
+        # paper_first_author = result['authors']
+        paper_authors = get_authors(result['authors']).replace('|', '')
+        paper_first_author = get_authors(
+            result['authors'], first_author=True).replace('|', '')
+        # primary_category = result.primary_category
 
-        publish_time = result.published.date()
-        update_time = result.updated.date()
+        publish_time = result['update_time']
+        update_time = result['update_time']
 
         if str(publish_time) != cur_date:
             continue
@@ -93,11 +121,12 @@ def get_daily_papers(search_engine, algo_txt, algo_name=''):
         else:
             appeared_ids.append(paper_id)
 
-        paper_title_zh_cn = GoogleTranslator(
-            source='en', target='zh-CN').translate(paper_title)
-        # print('paper_title_zh_cn: ', paper_title_zh_cn)
-        paper_abstract_zh_cn = GoogleTranslator(
-            source='en', target='zh-CN').translate(paper_abstract)
+        paper_title_zh_cn = call_llm(paper_title)
+        while "\n" in paper_title_zh_cn:
+            paper_title_zh_cn = paper_title_zh_cn.replace("\n", " ")
+        # paper_abstract_zh_cn = GoogleTranslator(
+        #     source='en', target='zh-CN').translate(paper_abstract)
+        paper_abstract_zh_cn = ''
 
         ver_pos = paper_id.find('v')
         if ver_pos == -1:
@@ -244,19 +273,78 @@ def json_to_md(filename, to_web=False):
     print("finished")
 
 
+def search_arxiv():
+
+    # Base api query url
+    base_url = 'http://export.arxiv.org/api/query?'
+
+    # Search parameters
+    search_query = 'cat:cs.CV'  # search for electron in all fields
+    # search_query = 'all:cs.CV'  # search for electron in all fields
+    start = 0                       # start at the first result
+    total_results = max_results              # want 20 total results
+    results_per_iteration = max_results       # 5 results at a time
+    wait_time = 1                   # number of seconds to wait beetween calls
+
+    print('Searching arXiv for %s' % search_query)
+
+    result_list = []
+    idx = 0
+    for i in range(start, total_results, results_per_iteration):
+
+        # print("Results %i - %i" % (i, i+results_per_iteration))
+
+        query = 'search_query=%s&sortBy=lastUpdatedDate&sortOrder=descending&start=%i&max_results=%i' % (
+            search_query, i, results_per_iteration)
+        # query = 'search_query=%s&start=%i&max_results=%i&sortOrder=descending' % (
+        #     search_query, i, results_per_iteration)
+
+        # perform a GET request using the base_url and query
+        response = urllib.request.urlopen(base_url+query).read()
+
+        # parse the response using feedparser
+        feed = feedparser.parse(response)
+
+        # Run through each entry, and print out information
+        for entry in feed.entries:
+            # print('idx: ', idx)
+            cur_entry = {}
+
+            paper_id = entry.id.split('/abs/')[-1]
+            title = entry.title
+            link = entry.link
+            update_time = entry.updated.split('T')[0]
+            summary = entry.summary
+            # summary = ''
+            authors = [name['name'] for name in entry.authors]
+            # arxiv_comment = entry.arxiv_comment
+
+            # print('\n############### %d'% idx)
+            # print('paper_id: ', paper_id)
+            # print('title: ', title)
+            # print('link: ', link)
+            # print('update_time: ', update_time)
+            # print('summary: ', summary)
+            # print('authors: ', authors)
+
+            cur_entry['paper_id'] = paper_id
+            cur_entry['title'] = title
+            cur_entry['link'] = link
+            cur_entry['update_time'] = update_time
+            cur_entry['summary'] = summary
+            cur_entry['authors'] = authors
+
+            result_list.append(cur_entry)
+            idx += 1
+
+    return result_list
+
+
 if __name__ == "__main__":
 
     print('start query arxiv paper')
-    query = "cat:cs.CV"
-    search_engine = arxiv.Search(
-        query=query,
-        max_results=max_results,
-        sort_by=arxiv.SortCriterion.SubmittedDate,
-        sort_order=arxiv.SortOrder.Descending
-    )
-
-    found_num = len(list(client.results(search_engine)))
-    print('found papers: ', found_num)
+    search_result_list = search_arxiv()
+    print('found papers: ', len(search_result_list))
 
     keywords = dict()
 
@@ -266,7 +354,7 @@ if __name__ == "__main__":
     keywords["模型压缩/优化"] = ['NAS', 'Network Architecture Search', 'Pruning', 'Quantization',
                            'Knowledge Distillation', 'Distillation', 'model optimizer']
     keywords["OCR"] = ['optical character recognition', 'ocr']
-    
+
     keywords["生成模型"] = ['diffusion model', 'GAN',
                         'vae', 'Generative Adversarial Networ', 'generative model']
     keywords["多模态"] = ['multi-modal', 'Multimodal',
@@ -274,7 +362,7 @@ if __name__ == "__main__":
     keywords["LLM"] = ['llm', 'language large model']
     keywords["Transformer"] = ['transformer', 'attention', 'transformation'
                                'self-attention', 'cross-attention', 'cross attention']
-    
+
     keywords["Nerf"] = ["Nerf", 'Neural Radiance Fields']
     keywords["3DGS"] = ['3d gaussian splatting', 'gaussian splatting']
     keywords["3D/CG"] = ["3D", '3D detection', '3D reconstruction', '3D understanding',
@@ -282,7 +370,7 @@ if __name__ == "__main__":
 
     keywords["各类学习方式"] = ['zero-shot', 'few-shot', 'zero shot', 'few shot', 'Semi-supervised',
                           'unsupervised', 'Continual Learning', 'Incremental Learning', 'Contrastive Learning']
-    
+
     keywords["GNN"] = ["GNN", 'Graph Neural Network', 'relational reasoning']
     keywords["图像理解"] = ['Intrinsic Image Decomposition', 'Intrinsic Image', 'relighting',
                         'recolor', 'image composition', 'normal estimation', 'depth estimation', 'lighting']
@@ -293,7 +381,7 @@ if __name__ == "__main__":
     for algo_name, algo_txt in keywords.items():
         print("Keyword: ", algo_name)
         data, data_web = get_daily_papers(
-            search_engine, algo_txt, algo_name=algo_name)
+            search_result_list, algo_txt, algo_name=algo_name)
         data_collector.append(data)
         print("\n")
 
