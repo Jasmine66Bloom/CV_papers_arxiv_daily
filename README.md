@@ -2,7 +2,7 @@
 **Daily feed of this day's research articles about Computer Vision published to https://arxiv.org.**
 
 
-## 2024.08
+## 2024.09
 * [2024-09-26.md](./data/2024-09/2024-09-26.md)
 * [2024-09-25.md](./data/2024-09/2024-09-25.md)
 * [2024-09-24.md](./data/2024-09/2024-09-24.md)
