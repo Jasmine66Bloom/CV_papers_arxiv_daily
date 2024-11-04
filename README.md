@@ -1,6 +1,9 @@
 # CV_papers_arxiv_daily
 **Daily feed of this day's research articles about Computer Vision published to https://arxiv.org.**
 
+## 2024.11
+* [2024-11-01.md](./data/2024-11/2024-11-01.md)
+
 ## 2024.10
 * [2024-10-31.md](./data/2024-10/2024-10-31.md)
 * [2024-10-30.md](./data/2024-10/2024-10-30.md)
