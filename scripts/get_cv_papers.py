@@ -16,7 +16,7 @@ from typing import List, Dict, Any
 import time
 
 # 查询参数设置
-QUERY_DAYS_AGO = 2          # 查询几天前的论文，0=今天，1=昨天，2=前天
+QUERY_DAYS_AGO = 1          # 查询几天前的论文，0=今天，1=昨天，2=前天
 MAX_RESULTS = 300           # 最大返回论文数量
 MAX_WORKERS = 5            # 并行处理的最大线程数
 
