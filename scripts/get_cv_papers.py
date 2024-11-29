@@ -17,7 +17,7 @@ import time
 
 # 查询参数设置
 QUERY_DAYS_AGO = 1          # 查询几天前的论文，0=今天，1=昨天，2=前天
-MAX_RESULTS = 300           # 最大返回论文数量
+MAX_RESULTS = 200           # 最大返回论文数量
 MAX_WORKERS = 5            # 并行处理的最大线程数
 
 def extract_github_link(text, paper_url=None):
@@ -111,7 +111,7 @@ def extract_arxiv_id(url):
     
     return None
 
-def df_to_markdown_table(papers_by_category: dict) -> str:
+def df_to_markdown_table(papers_by_category: dict, target_date) -> str:
     """生成表格形式的Markdown内容"""
     markdown = ""
     
@@ -135,12 +135,12 @@ def df_to_markdown_table(papers_by_category: dict) -> str:
         
         # 添加论文
         for paper in papers:
-            # 获取当前日期作为发布日期
-            today = datetime.now().strftime('%Y-%m-%d')
+            # 使用目标日期作为发布日期
+            pub_date = target_date.strftime('%Y-%m-%d')
             
             # 准备每个字段的值
             values = [
-                today,
+                pub_date,
                 paper['title'],
                 paper['title_cn'],
                 paper['authors'],  # 已经是格式化好的字符串
@@ -168,12 +168,12 @@ def df_to_markdown_table(papers_by_category: dict) -> str:
         
         # 添加论文
         for paper in active_categories["其他"]:
-            # 获取当前日期作为发布日期
-            today = datetime.now().strftime('%Y-%m-%d')
+            # 使用目标日期作为发布日期
+            pub_date = target_date.strftime('%Y-%m-%d')
             
             # 准备每个字段的值
             values = [
-                today,
+                pub_date,
                 paper['title'],
                 paper['title_cn'],
                 paper['authors'],  # 已经是格式化好的字符串
@@ -192,7 +192,7 @@ def df_to_markdown_table(papers_by_category: dict) -> str:
     
     return markdown
 
-def df_to_markdown_detailed(papers_by_category: dict) -> str:
+def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
     """生成详细格式的Markdown内容"""
     markdown = ""
     
@@ -211,6 +211,7 @@ def df_to_markdown_detailed(papers_by_category: dict) -> str:
         # 添加论文
         for idx, paper in enumerate(papers, 1):
             markdown += f'>>**index:** {idx}<br />\n'
+            markdown += f'**Date:** {target_date.strftime("%Y-%m-%d")}<br />\n'
             markdown += f'**Title:** {paper["title"]}<br />\n'
             markdown += f'**Title_cn:** {paper["title_cn"]}<br />\n'
             markdown += f'**Authors:** {paper["authors"]}<br />\n'  # 已经是格式化好的字符串
@@ -237,6 +238,7 @@ def df_to_markdown_detailed(papers_by_category: dict) -> str:
         
         for idx, paper in enumerate(active_categories["其他"], 1):
             markdown += f'>>**index:** {idx}<br />\n'
+            markdown += f'**Date:** {target_date.strftime("%Y-%m-%d")}<br />\n'
             markdown += f'**Title:** {paper["title"]}<br />\n'
             markdown += f'**Title_cn:** {paper["title_cn"]}<br />\n'
             markdown += f'**Authors:** {paper["authors"]}<br />\n'  # 已经是格式化好的字符串
@@ -288,12 +290,12 @@ def save_papers_to_markdown(papers_by_category: dict, target_date):
     # 保存表格格式的markdown文件到data/年-月目录
     with open(table_filepath, 'w', encoding='utf-8') as f:
         f.write(title)
-        f.write(df_to_markdown_table(papers_by_category))
+        f.write(df_to_markdown_table(papers_by_category, target_date))
     
     # 保存详细格式的markdown文件到local/年-月目录
     with open(detailed_filepath, 'w', encoding='utf-8') as f:
         f.write(title)
-        f.write(df_to_markdown_detailed(papers_by_category))
+        f.write(df_to_markdown_detailed(papers_by_category, target_date))
     
     print(f"\n表格格式文件已保存到: {table_filepath}")
     print(f"详细格式文件已保存到: {detailed_filepath}")
@@ -309,8 +311,8 @@ def process_paper(paper, glm_helper, target_date) -> Dict[str, Any]:
     Returns:
         Dict: 包含论文信息的字典，如果论文不符合日期要求则返回None
     """
-    # 检查日期
-    paper_date = paper.updated.date()
+    # 检查发布日期（不是更新日期）
+    paper_date = paper.published.date()
     if paper_date != target_date:
         return None
         
