@@ -1,5 +1,12 @@
-# CV_papers_arxiv_daily
-**Daily feed of this day's research articles about Computer Vision published to https://arxiv.org.**
+# ArXiv CV Papers Daily Update
+
+**Daily feed of the latest Computer Vision research papers from [ArXiv](https://arxiv.org).**
+
+
+
+## Overview
+[English](#english) | [中文](#chinese)
+This project automatically fetches, analyzes, and organizes the latest Computer Vision research papers from ArXiv. It uses AI-powered classification to categorize papers and provides bilingual support.
 
 ## 2024.11
 * [2024-11-27.md](./data/2024-11/2024-11-27.md)
