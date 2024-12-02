@@ -2,22 +2,16 @@ import arxiv
 from datetime import datetime, timedelta
 from collections import defaultdict
 import re
-from dateutil import parser
 from chatglm_helper import ChatGLMHelper
-import pandas as pd
 import os
 import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse, parse_qs
-import glob
-import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict, Any
+from typing import Dict, Any
 import time
 
 # 查询参数设置
-QUERY_DAYS_AGO = 1          # 查询几天前的论文，0=今天，1=昨天，2=前天
-MAX_RESULTS = 200           # 最大返回论文数量
+QUERY_DAYS_AGO = 5          # 查询几天前的论文，0=今天，1=昨天，2=前天
+MAX_RESULTS = 500           # 最大返回论文数量
 MAX_WORKERS = 5            # 并行处理的最大线程数
 
 def extract_github_link(text, paper_url=None):
@@ -312,7 +306,8 @@ def process_paper(paper, glm_helper, target_date) -> Dict[str, Any]:
         Dict: 包含论文信息的字典，如果论文不符合日期要求则返回None
     """
     # 检查发布日期（不是更新日期）
-    paper_date = paper.published.date()
+    # paper_date = paper.published.date()
+    paper_date = paper.updated.date()
     if paper_date != target_date:
         return None
         
@@ -372,7 +367,7 @@ def get_cv_papers():
     search = arxiv.Search(
         query=query,
         max_results=MAX_RESULTS,
-        sort_by=arxiv.SortCriterion.SubmittedDate,
+        sort_by=arxiv.SortCriterion.LastUpdatedDate,
         sort_order=arxiv.SortOrder.Descending
     )
     
