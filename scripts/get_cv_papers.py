@@ -313,7 +313,8 @@ def process_paper(paper, glm_helper, target_date) -> Dict[str, Any]:
         
     # 提取基本信息
     title = paper.title
-    authors = ', '.join(author.name for author in paper.authors)
+    author_list = list(paper.authors)
+    authors = ', '.join(author.name for author in (author_list[:8] if len(author_list) > 8 else author_list))
     abstract = paper.summary
     paper_url = paper.entry_id
     pdf_url = paper.pdf_url if hasattr(paper, 'pdf_url') else None
