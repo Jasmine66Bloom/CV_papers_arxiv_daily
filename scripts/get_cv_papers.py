@@ -10,8 +10,8 @@ from typing import Dict, Any
 import time
 
 # 查询参数设置
-QUERY_DAYS_AGO = 1          # 查询几天前的论文，0=今天，1=昨天，2=前天
-MAX_RESULTS = 300           # 最大返回论文数量
+QUERY_DAYS_AGO = 2          # 查询几天前的论文，0=今天，1=昨天，2=前天
+MAX_RESULTS = 400           # 最大返回论文数量
 MAX_WORKERS = 5            # 并行处理的最大线程数
 
 def extract_github_link(text, paper_url=None):
@@ -199,12 +199,12 @@ def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
     # 为每个有论文的类别创建详细内容
     for category, papers in sorted(((k, v) for k, v in active_categories.items() if k != "其他")):
         # 添加类别标题
-        markdown += f">## **{category}**\n"
-        markdown += ">---\n"
+        markdown += f"## **{category}**\n"
+        markdown += "---\n"
         
         # 添加论文
         for idx, paper in enumerate(papers, 1):
-            markdown += f'>>**index:** {idx}<br />\n'
+            markdown += f'**index:** {idx}<br />\n'
             markdown += f'**Date:** {target_date.strftime("%Y-%m-%d")}<br />\n'
             markdown += f'**Title:** {paper["title"]}<br />\n'
             markdown += f'**Title_cn:** {paper["title_cn"]}<br />\n'
@@ -227,11 +227,11 @@ def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
     
     # 处理"其他"类别
     if "其他" in active_categories:
-        markdown += f">## **其他**\n"
-        markdown += ">---\n"
+        markdown += f"## **其他**\n"
+        markdown += "---\n"
         
         for idx, paper in enumerate(active_categories["其他"], 1):
-            markdown += f'>>**index:** {idx}<br />\n'
+            markdown += f'**index:** {idx}<br />\n'
             markdown += f'**Date:** {target_date.strftime("%Y-%m-%d")}<br />\n'
             markdown += f'**Title:** {paper["title"]}<br />\n'
             markdown += f'**Title_cn:** {paper["title_cn"]}<br />\n'
