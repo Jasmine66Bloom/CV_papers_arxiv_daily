@@ -52,17 +52,6 @@ CATEGORY_KEYWORDS = {
     ],
     
     # 生成类（细分不同生成任务）
-    "文生图": [
-        "text to image",
-        "text-to-image",
-        "t2i",
-        "text guided generation",
-        "prompt to image",
-        "dalle",
-        "stable diffusion",
-        "text conditioned",
-        "language guided"
-    ],
     "图像编辑/处理": [
         "image editing",
         "image manipulation",
@@ -76,6 +65,15 @@ CATEGORY_KEYWORDS = {
         "local editing"
     ],
     "图像生成/合成": [
+        "text to image",
+        "text-to-image",
+        "t2i",
+        "text guided generation",
+        "prompt to image",
+        "dalle",
+        "stable diffusion",
+        "text conditioned",
+        "language guided",
         "image synthesis",
         "image generation",
         "gan",
@@ -394,7 +392,6 @@ CATEGORY_PROMPT = '''
    - 3D感知：点云处理、深度估计、SLAM、位姿估计、3D检测等
 
 3. 生成类（创作和编辑视觉内容）
-   - 文生图：文本引导的图像生成、文生图、提示词优化等
    - 图像编辑/处理：图像编辑、风格迁移、图像修复、内容操作等
    - 图像生成/合成：GAN生成、扩散模型、图像合成、图像变换等
    - 视频生成：视频生成、动画生成、视频编辑、视频合成等
