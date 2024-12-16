@@ -2,16 +2,22 @@ import arxiv
 from datetime import datetime, timedelta
 from collections import defaultdict
 import re
+from dateutil import parser
 from chatglm_helper import ChatGLMHelper
+import pandas as pd
 import os
 import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urlparse, parse_qs
+import glob
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Dict, Any
+from typing import List, Dict, Any
 import time
 
 # 查询参数设置
 QUERY_DAYS_AGO = 3          # 查询几天前的论文，0=今天，1=昨天，2=前天
-MAX_RESULTS = 400           # 最大返回论文数量
+MAX_RESULTS = 300           # 最大返回论文数量
 MAX_WORKERS = 5            # 并行处理的最大线程数
 
 def extract_github_link(text, paper_url=None):
@@ -199,12 +205,12 @@ def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
     # 为每个有论文的类别创建详细内容
     for category, papers in sorted(((k, v) for k, v in active_categories.items() if k != "其他")):
         # 添加类别标题
-        markdown += f"## **{category}**\n"
-        markdown += "---\n"
+        markdown += f">## **{category}**\n"
+        markdown += ">---\n"
         
         # 添加论文
         for idx, paper in enumerate(papers, 1):
-            markdown += f'**index:** {idx}<br />\n'
+            markdown += f'>>**index:** {idx}<br />\n'
             markdown += f'**Date:** {target_date.strftime("%Y-%m-%d")}<br />\n'
             markdown += f'**Title:** {paper["title"]}<br />\n'
             markdown += f'**Title_cn:** {paper["title_cn"]}<br />\n'
@@ -227,11 +233,11 @@ def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
     
     # 处理"其他"类别
     if "其他" in active_categories:
-        markdown += f"## **其他**\n"
-        markdown += "---\n"
+        markdown += f">## **其他**\n"
+        markdown += ">---\n"
         
         for idx, paper in enumerate(active_categories["其他"], 1):
-            markdown += f'**index:** {idx}<br />\n'
+            markdown += f'>>**index:** {idx}<br />\n'
             markdown += f'**Date:** {target_date.strftime("%Y-%m-%d")}<br />\n'
             markdown += f'**Title:** {paper["title"]}<br />\n'
             markdown += f'**Title_cn:** {paper["title_cn"]}<br />\n'
@@ -306,8 +312,7 @@ def process_paper(paper, glm_helper, target_date) -> Dict[str, Any]:
         Dict: 包含论文信息的字典，如果论文不符合日期要求则返回None
     """
     # 检查发布日期（不是更新日期）
-    # paper_date = paper.published.date()
-    paper_date = paper.updated.date()
+    paper_date = paper.published.date()
     if paper_date != target_date:
         return None
         
@@ -368,7 +373,7 @@ def get_cv_papers():
     search = arxiv.Search(
         query=query,
         max_results=MAX_RESULTS,
-        sort_by=arxiv.SortCriterion.LastUpdatedDate,
+        sort_by=arxiv.SortCriterion.SubmittedDate,
         sort_order=arxiv.SortOrder.Descending
     )
     

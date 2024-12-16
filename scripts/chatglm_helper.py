@@ -5,6 +5,8 @@ import json
 from typing import Tuple, List
 import time
 import re
+from collections import defaultdict
+import categories_config
 
 class ChatGLMHelper:
     def __init__(self):
@@ -87,62 +89,114 @@ class ChatGLMHelper:
         return text
 
     def get_category_by_keywords(self, title: str, abstract: str) -> Tuple[str, float]:
-        """通过关键词匹配进行分类"""
-        # 将标题和摘要转换为小写以进行不区分大小写的匹配
-        text = (title + " " + abstract).lower()
+        """通过关键词匹配进行分类
         
-        # 定义每个类别的关键词
-        keywords = {
-            "3DGS": [
-                "gaussian splat", "3d gaussian", "gaussian splatting", 
-                "3d scene", "point cloud", "neural point"
-            ],
-            "NeRF": [
-                "nerf", "neural radiance field", "neural radiation field",
-                "radiance field", "novel view", "view synthesis"
-            ],
-            "3D视觉与重建": [
-                "3d reconstruction", "point cloud", "depth estimation",
-                "3d detection", "3d object", "3d scene", "mesh", "voxel"
-            ],
-            "图像生成与编辑": [
-                "gan", "diffusion", "generative", "synthesis", "style transfer",
-                "image editing", "text-to-image", "image generation"
-            ],
-            "多模态学习": [
-                "multimodal", "multi-modal", "vision-language", "text-image",
-                "cross-modal", "visual-language", "vlm", "llm"
-            ],
-            "目标检测与分割": [
-                "detection", "segmentation", "object detection", 
-                "semantic segmentation", "instance segmentation"
-            ],
-            "视频理解与处理": [
-                "video", "temporal", "motion", "frame", "clip", 
-                "video understanding", "action recognition"
-            ],
-            "人体姿态与动作": [
-                "pose", "human pose", "body", "skeleton", "action",
-                "motion capture", "human motion", "gesture"
-            ]
-        }
+        Args:
+            title: 论文标题
+            abstract: 论文摘要
+            
+        Returns:
+            Tuple[str, float]: (类别名称, 置信度)
+        """
+        # 将标题和摘要转换为小写
+        title_lower = title.lower()
+        abstract_lower = abstract.lower()
         
-        # 计算每个类别的匹配分数
-        category_scores = {}
-        for category, words in keywords.items():
-            score = sum(1 for word in words if word in text)
+        # 记录每个类别的匹配分数
+        category_scores = defaultdict(float)
+        
+        # 遍历所有类别和关键词
+        for category, keywords in categories_config.CATEGORY_KEYWORDS.items():
+            score = 0.0
+            matched_keywords = set()  # 避免重复计算
+            
+            for keyword in keywords:
+                keyword_lower = keyword.lower()
+                if keyword not in matched_keywords:
+                    # 标题完全匹配权重最高
+                    if keyword_lower in title_lower:
+                        score += 4.0
+                        matched_keywords.add(keyword)
+                    # 标题部分匹配权重次之
+                    elif any(kw in title_lower for kw in keyword_lower.split()):
+                        score += 2.0
+                        matched_keywords.add(keyword)
+                    # 摘要开头匹配
+                    elif keyword_lower in abstract_lower[:200]:
+                        score += 1.5
+                        matched_keywords.add(keyword)
+                    # 摘要其他位置匹配
+                    elif keyword_lower in abstract_lower:
+                        score += 1.0
+                        matched_keywords.add(keyword)
+            
             if score > 0:
-                confidence = min(0.9, 0.5 + score * 0.1)  # 最高置信度为0.9
-                category_scores[category] = (score, confidence)
+                # 根据匹配的关键词数量调整分数
+                if len(matched_keywords) >= 2:
+                    score *= 1.2
+                elif len(matched_keywords) >= 3:
+                    score *= 1.4
+                
+                category_scores[category] = score
         
-        # 如果找到匹配的类别，返回得分最高的
+        # 找出得分最高的类别
         if category_scores:
-            best_category = max(category_scores.items(), key=lambda x: x[1][0])
-            return best_category[0], best_category[1][1]
+            best_category = max(category_scores.items(), key=lambda x: x[1])
+            # 降低置信度阈值，减少返回"其他"的情况
+            if best_category[1] >= 1.5:  # 降低阈值，使系统更倾向于给出具体类别
+                return best_category
         
-        return None, 0.0
+        return "其他", 0.0
 
-    def categorize_paper(self, title, abstract):
+    def classify_paper(self, title: str, abstract: str) -> str:
+        """对论文进行分类
+        
+        Args:
+            title: 论文标题
+            abstract: 论文摘要
+            
+        Returns:
+            str: 论文类别
+        """
+        try:
+            # 先尝试使用关键词匹配
+            keyword_category, confidence = self.get_category_by_keywords(title, abstract)
+            if keyword_category != "其他" and confidence >= 1.5:
+                return keyword_category
+            
+            # 构建分类提示词
+            prompt = f"{categories_config.CATEGORY_PROMPT}\n\n论文标题：{title}\n摘要：{abstract}\n\n注意：请尽量根据论文解决的核心问题确定一个具体类别。只有在完全无法确定时才返回'其他'。"
+            
+            # 调用 ChatGLM 进行分类
+            response = self.client.chat.completions.create(
+                model="glm-4-flash",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                max_tokens=50,
+                top_p=0.7,
+            )
+            
+            # 获取分类结果
+            category = response.choices[0].message.content.strip()
+            
+            # 验证返回的类别是否在预定义类别中
+            if category in categories_config.ALL_CATEGORIES:
+                return category
+            
+            # 如果返回的类别不在预定义类别中，使用关键词匹配的结果
+            if keyword_category != "其他":
+                return keyword_category
+            
+            return "其他"
+                
+        except Exception as e:
+            print(f"ChatGLM 分类出错: {str(e)}")
+            # 发生错误时，如果关键词匹配有结果就返回
+            if keyword_category != "其他":
+                return keyword_category
+            return "其他"
+
+    def categorize_paper(self, title: str, abstract: str) -> str:
         """使用ChatGLM对论文进行分类
         
         Args:
@@ -152,76 +206,42 @@ class ChatGLMHelper:
         Returns:
             str: 论文类别
         """
-        # 构建 prompt
-        prompt = f"""你是一个专业的计算机视觉论文分类助手。请分析以下论文的标题和摘要，
-将其分类到最合适的类别中。只返回类别名称，不需要解释。
-
-可选类别：
-- 3DGS（3D Gaussian Splatting相关）
-- NeRF（神经辐射场相关）
-- 3D视觉与重建（3D视觉、重建、点云等）
-- 图像生成与编辑（图像生成、编辑、风格迁移等）
-- 多模态学习（多模态、跨模态学习等）
-- 目标检测与分割（目标检测、分割、追踪等）
-- 视频理解与处理（视频分析、理解、生成等）
-- 人体姿态与动作（人体姿态估计、动作识别等）
-- 其他（其他CV相关研究）
-
-论文标题：{title}
-论文摘要：{abstract}
-
-请根据论文的核心贡献和主要方法进行分类。如果一篇论文涉及多个类别，请选择最主要的一个。
-只返回类别名称，例如"3DGS"或"NeRF"等。"""
-
-        try:
-            # 调用ChatGLM API
-            response = self.client.chat.completions.create(
-                model="glm-4-flash",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,  # 使用较低的温度以获得更确定的答案
-                max_tokens=200,
-                top_p=0.7,
-            )
-            
-            # 获取分类结果
-            category = response.choices[0].message.content.strip()
-            
-            # 确保返回的类别是有效的
-            valid_categories = [
-                "3DGS", "NeRF", "3D视觉与重建", "图像生成与编辑", 
-                "多模态学习", "目标检测与分割", "视频理解与处理", 
-                "人体姿态与动作", "其他"
-            ]
-            
-            # 如果返回的类别不在列表中，尝试模糊匹配最相似的类别
-            if category not in valid_categories:
-                # 对于一些常见的变体进行标准化
-                category_mapping = {
-                    "3D高斯": "3DGS",
-                    "高斯散射": "3DGS",
-                    "神经辐射场": "NeRF",
-                    "NeRF相关": "NeRF",
-                    "三维视觉": "3D视觉与重建",
-                    "3D重建": "3D视觉与重建",
-                    "图像生成": "图像生成与编辑",
-                    "图像编辑": "图像生成与编辑",
-                    "多模态": "多模态学习",
-                    "目标检测": "目标检测与分割",
-                    "实例分割": "目标检测与分割",
-                    "视频处理": "视频理解与处理",
-                    "视频分析": "视频理解与处理",
-                    "人体姿态": "人体姿态与动作",
-                    "动作识别": "人体姿态与动作"
-                }
+        # 构建提示词
+        prompt = f"{categories_config.CATEGORY_PROMPT}\n\n论文标题：{title}\n摘要：{abstract}\n\n注意：请尽量根据论文解决的核心问题确定一个具体类别。只有在完全无法确定时才返回'其他'。"
+        
+        # 尝试最多3次分类
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            try:
+                # 获取ChatGLM的分类结果
+                response = self.client.chat.completions.create(
+                    model="glm-4-flash",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.1,
+                    max_tokens=200,
+                    top_p=0.7,
+                )
+                category = response.choices[0].message.content.strip()
                 
-                # 尝试从映射中获取标准类别
-                category = category_mapping.get(category, "其他")
-            
-            return category
-            
-        except Exception as e:
-            print(f"分类过程出错: {str(e)}")
-            return "其他"
+                # 验证返回的类别是否有效
+                if category in categories_config.ALL_CATEGORIES:
+                    return category
+                
+                # 如果ChatGLM返回无效类别，尝试使用关键词匹配
+                keyword_category, confidence = self.get_category_by_keywords(title, abstract)
+                if keyword_category != "其他":
+                    return keyword_category
+                
+            except Exception as e:
+                if attempt == max_attempts - 1:
+                    print(f"Error in categorization after {max_attempts} attempts: {e}")
+                    # 最后尝试使用关键词匹配
+                    keyword_category, confidence = self.get_category_by_keywords(title, abstract)
+                    if keyword_category != "其他":
+                        return keyword_category
+                continue
+        
+        return "其他"
 
     def analyze_paper_contribution(self, title: str, abstract: str) -> dict:
         """分析论文的核心贡献和解决的问题
