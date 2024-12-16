@@ -115,15 +115,15 @@ class ChatGLMHelper:
                 if keyword not in matched_keywords:
                     # 标题完全匹配权重最高
                     if keyword_lower in title_lower:
-                        score += 4.0
+                        score += 5.0
                         matched_keywords.add(keyword)
                     # 标题部分匹配权重次之
                     elif any(kw in title_lower for kw in keyword_lower.split()):
-                        score += 2.0
+                        score += 3.0
                         matched_keywords.add(keyword)
                     # 摘要开头匹配
                     elif keyword_lower in abstract_lower[:200]:
-                        score += 1.5
+                        score += 2.0
                         matched_keywords.add(keyword)
                     # 摘要其他位置匹配
                     elif keyword_lower in abstract_lower:
@@ -131,19 +131,32 @@ class ChatGLMHelper:
                         matched_keywords.add(keyword)
             
             if score > 0:
-                # 根据匹配的关键词数量调整分数
+                # 根据匹配的关键词数量和位置调整分数
                 if len(matched_keywords) >= 2:
-                    score *= 1.2
+                    score *= 1.3  # 多个关键词匹配时提升分数
                 elif len(matched_keywords) >= 3:
-                    score *= 1.4
+                    score *= 1.5  # 更多关键词匹配时进一步提升
+                
+                # 如果标题中包含类别名称，额外加分
+                if category.lower() in title_lower:
+                    score *= 1.2
                 
                 category_scores[category] = score
         
         # 找出得分最高的类别
         if category_scores:
-            best_category = max(category_scores.items(), key=lambda x: x[1])
-            # 降低置信度阈值，减少返回"其他"的情况
-            if best_category[1] >= 1.5:  # 降低阈值，使系统更倾向于给出具体类别
+            # 获取前两个得分最高的类别
+            sorted_categories = sorted(category_scores.items(), key=lambda x: x[1], reverse=True)
+            best_category = sorted_categories[0]
+            
+            # 如果最高分显著高于第二高分，增加置信度
+            if len(sorted_categories) > 1:
+                second_best = sorted_categories[1]
+                if best_category[1] >= second_best[1] * 1.5:  # 最高分至少比第二高分高50%
+                    return best_category
+                
+            # 否则使用原始阈值
+            if best_category[1] >= 2.0:
                 return best_category
         
         return "其他", 0.0
@@ -161,11 +174,11 @@ class ChatGLMHelper:
         try:
             # 先尝试使用关键词匹配
             keyword_category, confidence = self.get_category_by_keywords(title, abstract)
-            if keyword_category != "其他" and confidence >= 1.5:
+            if keyword_category != "其他" and confidence >= 2.0:
                 return keyword_category
             
-            # 构建分类提示词
-            prompt = f"{categories_config.CATEGORY_PROMPT}\n\n论文标题：{title}\n摘要：{abstract}\n\n注意：请尽量根据论文解决的核心问题确定一个具体类别。只有在完全无法确定时才返回'其他'。"
+            # 构建分类提示词，强调分类准确性
+            prompt = f"{categories_config.CATEGORY_PROMPT}\n\n论文标题：{title}\n摘要：{abstract}\n\n注意：\n1. 请仔细分析论文的核心技术和主要贡献\n2. 选择最能体现论文主要工作的类别\n3. 如果论文跨多个领域，选择最核心的一个\n4. 只有在完全无法确定时才返回'其他'"
             
             # 调用 ChatGLM 进行分类
             response = self.client.chat.completions.create(
@@ -181,6 +194,21 @@ class ChatGLMHelper:
             
             # 验证返回的类别是否在预定义类别中
             if category in categories_config.ALL_CATEGORIES:
+                # 如果ChatGLM返回的类别与关键词匹配的类别不同，且都不是"其他"
+                if keyword_category != "其他" and category != keyword_category:
+                    # 进行第二次确认
+                    confirm_prompt = f"{prompt}\n\n系统发现这篇论文可能属于'{keyword_category}'类别，请再次确认最合适的分类。"
+                    response = self.client.chat.completions.create(
+                        model="glm-4-flash",
+                        messages=[{"role": "user", "content": confirm_prompt}],
+                        temperature=0.1,
+                        max_tokens=50,
+                        top_p=0.7,
+                    )
+                    final_category = response.choices[0].message.content.strip()
+                    if final_category in categories_config.ALL_CATEGORIES:
+                        return final_category
+                
                 return category
             
             # 如果返回的类别不在预定义类别中，使用关键词匹配的结果
