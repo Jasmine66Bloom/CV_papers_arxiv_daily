@@ -1,8 +1,6 @@
 """ChatGLM助手：用于论文标题翻译和分类"""
 from zhipuai import ZhipuAI
-import os
-import json
-from typing import Tuple, List
+from typing import Tuple
 import time
 import re
 from collections import defaultdict

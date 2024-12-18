@@ -2,17 +2,11 @@ import arxiv
 from datetime import datetime, timedelta
 from collections import defaultdict
 import re
-from dateutil import parser
 from chatglm_helper import ChatGLMHelper
-import pandas as pd
 import os
 import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse, parse_qs
-import glob
-import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict, Any
+from typing import Dict, Any
 import time
 
 # 查询参数设置
@@ -205,12 +199,12 @@ def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
     # 为每个有论文的类别创建详细内容
     for category, papers in sorted(((k, v) for k, v in active_categories.items() if k != "其他")):
         # 添加类别标题
-        markdown += f">## **{category}**\n"
-        markdown += ">---\n"
+        markdown += f"## **{category}**\n"
+        markdown += "\n"
         
         # 添加论文
         for idx, paper in enumerate(papers, 1):
-            markdown += f'>>**index:** {idx}<br />\n'
+            markdown += f'**index:** {idx}<br />\n'
             markdown += f'**Date:** {target_date.strftime("%Y-%m-%d")}<br />\n'
             markdown += f'**Title:** {paper["title"]}<br />\n'
             markdown += f'**Title_cn:** {paper["title_cn"]}<br />\n'
@@ -233,11 +227,11 @@ def df_to_markdown_detailed(papers_by_category: dict, target_date) -> str:
     
     # 处理"其他"类别
     if "其他" in active_categories:
-        markdown += f">## **其他**\n"
-        markdown += ">---\n"
+        markdown += f"## **其他**\n"
+        markdown += "\n"
         
         for idx, paper in enumerate(active_categories["其他"], 1):
-            markdown += f'>>**index:** {idx}<br />\n'
+            markdown += f'**index:** {idx}<br />\n'
             markdown += f'**Date:** {target_date.strftime("%Y-%m-%d")}<br />\n'
             markdown += f'**Title:** {paper["title"]}<br />\n'
             markdown += f'**Title_cn:** {paper["title_cn"]}<br />\n'
