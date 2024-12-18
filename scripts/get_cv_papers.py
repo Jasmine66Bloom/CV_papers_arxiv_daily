@@ -306,7 +306,7 @@ def process_paper(paper, glm_helper, target_date) -> Dict[str, Any]:
         Dict: 包含论文信息的字典，如果论文不符合日期要求则返回None
     """
     # 检查发布日期（不是更新日期）
-    paper_date = paper.published.date()
+    paper_date = paper.updated.date()
     if paper_date != target_date:
         return None
         
