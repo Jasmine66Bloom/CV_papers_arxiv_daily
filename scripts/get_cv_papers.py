@@ -368,7 +368,7 @@ def get_cv_papers():
     search = arxiv.Search(
         query=query,
         max_results=MAX_RESULTS,
-        sort_by=arxiv.SortCriterion.SubmittedDate,
+        sort_by=arxiv.SortCriterion.LastUpdatedDate,
         sort_order=arxiv.SortOrder.Descending
     )
     
